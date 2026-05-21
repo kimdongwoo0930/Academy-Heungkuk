@@ -4,7 +4,7 @@ import { ClassroomReservation, MealReservation, Reservation, RoomReservation } f
 import { useEffect, useMemo, useRef, useState } from 'react';
 // RoomReservation used in handleRoomConfirm type annotation
 import { downloadConfirmation, downloadEstimate, downloadTrade, searchReservations } from '@/lib/api/reservation';
-import { getDisabledClassrooms } from '@/lib/api/settings';
+import { getDisabledClassrooms, getDisabledRooms } from '@/lib/api/settings';
 import { CLASSROOM_ROOM_TO_CATEGORY } from '@/lib/constants/classrooms';
 import { ROOM_INFO, RoomType } from '@/lib/constants/rooms';
 import { isAdmin } from '@/lib/utils/auth';
@@ -136,6 +136,7 @@ export default function ReservationModal({ reservation, allReservations, onClose
     const isEdit = reservation !== null;
     const globalToast = useToastStore((s) => s.show);
     const [disabledClassrooms, setDisabledClassrooms] = useState<Set<string>>(new Set());
+    const [disabledRooms, setDisabledRooms] = useState<string[]>([]);
     const [saving, setSaving] = useState(false);
     const [estimating, setEstimating] = useState(false);
     const [confirming, setConfirming] = useState(false);
@@ -157,6 +158,9 @@ export default function ReservationModal({ reservation, allReservations, onClose
     useEffect(() => {
         getDisabledClassrooms()
             .then((codes) => setDisabledClassrooms(new Set(codes)))
+            .catch(() => {});
+        getDisabledRooms()
+            .then((codes) => setDisabledRooms(codes))
             .catch(() => {});
     }, []);
 
@@ -1890,6 +1894,7 @@ export default function ReservationModal({ reservation, allReservations, onClose
                             (r) => !getOccupiedRoomsForDate(pickerDate).includes(r),
                         )}
                         occupiedRooms={getOccupiedRoomsForDate(pickerDate)}
+                        disabledRooms={disabledRooms}
                         onConfirm={(rooms) => handleRoomConfirm(pickerDate, rooms)}
                         onClose={() => setPickerDate(null)}
                     />
@@ -1901,6 +1906,7 @@ export default function ReservationModal({ reservation, allReservations, onClose
                         date="전체 날짜"
                         selected={getRoomsForDate(getRoomDateRange()[0] ?? '')}
                         occupiedRooms={[]}
+                        disabledRooms={disabledRooms}
                         onConfirm={applyBulkRooms}
                         onClose={() => setBulkRoomPickerOpen(false)}
                     />

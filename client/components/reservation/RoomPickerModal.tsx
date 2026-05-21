@@ -1,6 +1,14 @@
 "use client";
 
-import { ROOM_INFO, RoomType } from "@/lib/constants/rooms";
+import {
+  CellDef,
+  FLOOR_GRID_COLS,
+  FLOOR_GRID_ROWS,
+  FLOOR_LAYOUT_1F,
+  FLOOR_LAYOUT_2F,
+  ROOM_INFO,
+  RoomType,
+} from "@/lib/constants/rooms";
 import { printRoomViewForDate } from "@/lib/utils/printRoomTable";
 import { useRef, useState } from "react";
 import styles from "./RoomPickerModal.module.css";
@@ -9,6 +17,7 @@ interface Props {
   date: string;
   selected: string[];
   occupiedRooms: string[];
+  disabledRooms?: string[];
   onConfirm: (rooms: string[]) => void;
   onClose: () => void;
   viewOnly?: boolean;
@@ -28,81 +37,16 @@ const TYPE_PASTEL: Record<RoomType, string> = {
   "4인실": "#fef3dc",
 };
 
-// 각 방/라벨의 명시적 그리드 위치
-// row: 1-indexed half-row 시작 (각 방은 span 2)
-// 한 칸씩 반행(half-row) 내려가면 → 옆 방 높이의 중간쯤에 위치
-interface CellDef {
-  id: string;
-  isLabel?: boolean;
-  row: number;
-  col: number;
-  colSpan?: number;
-}
-
-//  구조 개요 (col 1~17, half-row 1~11):
-//   col: 1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17
-//  row1:               109  110  111  [화]  127  126
-//  row2:          108                            125
-//  row3:     107                                      124
-//  row4:106  101  [현관][현관][현관]  112  123
-//  row5:102                            113       122
-//  row6:     103                            114       121
-//  row7:104                                 115       120
-//  row8:                                         116       119
-//  row9:                                              117
-// row10:                                                   118
-
-const LAYOUT: CellDef[] = [
-  // ── 상단 복도 ──
-  { id: "109", row: 1, col: 5 },
-  { id: "110", row: 1, col: 6 },
-  { id: "111", row: 1, col: 7 },
-  { id: "화장실", isLabel: true, row: 1, col: 8 },
-  { id: "127", row: 1, col: 9 },
-  { id: "126", row: 1, col: 10 },
-
-  // ── 좌측 상단 대각선 (↙) ──
-  { id: "108", row: 2, col: 4 },
-  { id: "107", row: 3, col: 3 },
-  { id: "106", row: 4, col: 2 },
-  { id: "105", row: 5, col: 1 },
-
-  // ── 우측 상단 대각선 (↘) ──
-  { id: "125", row: 2, col: 11 },
-  { id: "124", row: 3, col: 12 },
-  { id: "123", row: 4, col: 13 },
-  { id: "122", row: 5, col: 14 },
-  { id: "121", row: 6, col: 15 },
-  { id: "120", row: 7, col: 16 },
-  { id: "119", row: 8, col: 17 },
-
-  // ── 현관 라벨 ──
-  { id: "현관", isLabel: true, row: 6, col: 7, colSpan: 2 },
-
-  // ── 좌측 하단 대각선 (↙) — 106 기준 2칸 간격 ──
-  { id: "101", row: 6, col: 5 },
-  { id: "102", row: 7, col: 4 },
-  { id: "103", row: 8, col: 3 },
-  { id: "104", row: 9, col: 2 },
-
-  // ── 우측 하단 대각선 (↘) — 125 기준 2칸 간격 ──
-  { id: "112", row: 6, col: 10 },
-  { id: "113", row: 7, col: 11 },
-  { id: "114", row: 8, col: 12 },
-  { id: "115", row: 9, col: 13 },
-  { id: "116", row: 10, col: 14 },
-  { id: "117", row: 11, col: 15 },
-  { id: "118", row: 12, col: 16 },
-];
-
-// 그리드 크기 (CSS 변수로 전달)
-const GRID_COLS = 17;
-const GRID_ROWS = 13; // half-rows
+const FLOOR_LAYOUTS: Record<string, CellDef[]> = {
+  "1": FLOOR_LAYOUT_1F,
+  "2": FLOOR_LAYOUT_2F,
+};
 
 export default function RoomPickerModal({
   date,
   selected,
   occupiedRooms,
+  disabledRooms = [],
   onConfirm,
   onClose,
   viewOnly = false,
@@ -110,6 +54,7 @@ export default function RoomPickerModal({
   orgLegend = [],
 }: Props) {
   const [picked, setPicked] = useState<Set<string>>(new Set(selected));
+  const [activeFloor, setActiveFloor] = useState<"1" | "2">("1");
   const [pos, setPos] = useState({ dx: 0, dy: 0 });
   const dragRef = useRef<{
     startX: number;
@@ -180,6 +125,87 @@ export default function RoomPickerModal({
   const countByType = (type: RoomType) =>
     [...picked].filter((n) => ROOM_INFO[n]?.type === type).length;
 
+  const layout = FLOOR_LAYOUTS[activeFloor];
+
+  const renderFloorGrid = () => (
+    <div
+      className={styles.floorGrid}
+      style={{
+        gridTemplateColumns: `repeat(${FLOOR_GRID_COLS}, 36px)`,
+        gridTemplateRows: `repeat(${FLOOR_GRID_ROWS}, 18px)`,
+      }}
+    >
+      {layout.map((cell, idx) => {
+        const gridRow = `${cell.row} / span 2`;
+        const gridColumn = cell.colSpan
+          ? `${cell.col} / span ${cell.colSpan}`
+          : `${cell.col}`;
+
+        if (cell.isLabel) {
+          return (
+            <div
+              key={`${cell.id}-${idx}`}
+              className={styles.floorLabel}
+              style={{ gridRow, gridColumn }}
+            >
+              {cell.id}
+            </div>
+          );
+        }
+
+        const info = ROOM_INFO[cell.id];
+        const isPicked = picked.has(cell.id);
+        const isOccupied = occupiedRooms.includes(cell.id);
+        const isAdminDisabled = disabledRooms.includes(cell.id);
+        const isBlocked = isOccupied || isAdminDisabled;
+        const viewColor = viewOnly ? roomColors[cell.id] : undefined;
+        const color = viewColor ?? TYPE_COLOR[info.type];
+        const pastel = TYPE_PASTEL[info.type];
+
+        const cellClass = [
+          styles.roomCell,
+          viewOnly ? styles.roomViewOnly : "",
+          viewOnly && viewColor ? styles.roomPicked : "",
+          !viewOnly && isPicked ? styles.roomPicked : "",
+          !viewOnly && isOccupied ? styles.roomOccupied : "",
+          !viewOnly && isAdminDisabled && !isOccupied ? styles.roomAdminDisabled : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        const capLabel = isOccupied ? "사용중" : isAdminDisabled ? "사용불가" : `${info.cap}인`;
+        const titleLabel = isOccupied
+          ? `${cell.id}호 — 사용중`
+          : isAdminDisabled
+            ? `${cell.id}호 — 사용불가`
+            : `${cell.id}호 (${info.type})`;
+
+        return (
+          <button
+            key={cell.id}
+            className={cellClass}
+            style={
+              {
+                gridRow,
+                gridColumn,
+                "--c": color,
+                "--bg": pastel,
+              } as React.CSSProperties
+            }
+            onClick={viewOnly ? undefined : () => !isBlocked && toggle(cell.id)}
+            disabled={!viewOnly && isBlocked}
+            title={viewOnly ? (viewColor ? `${cell.id}호 — 예약됨` : `${cell.id}호 (${info.type})`) : titleLabel}
+          >
+            <span className={styles.cellNum}>{cell.id}호</span>
+            <span className={styles.cellCap}>
+              {!viewOnly && isBlocked ? capLabel : `${info.cap}인`}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div
       className={styles.overlay}
@@ -216,6 +242,19 @@ export default function RoomPickerModal({
           <button className={styles.closeBtn} onClick={onClose}>
             ✕
           </button>
+        </div>
+
+        {/* 층 탭 */}
+        <div className={styles.floorTabs}>
+          {(["1", "2"] as const).map((floor) => (
+            <button
+              key={floor}
+              className={`${styles.floorTab} ${activeFloor === floor ? styles.floorTabActive : ""}`}
+              onClick={() => setActiveFloor(floor)}
+            >
+              {floor}층
+            </button>
+          ))}
         </div>
 
         {/* 범례 */}
@@ -268,84 +307,7 @@ export default function RoomPickerModal({
         </div>
 
         {/* 도면 */}
-        <div className={styles.floorWrap}>
-          <div
-            className={styles.floorGrid}
-            style={{
-              gridTemplateColumns: `repeat(${GRID_COLS}, 36px)`,
-              gridTemplateRows: `repeat(${GRID_ROWS}, 18px)`,
-            }}
-          >
-            {LAYOUT.map((cell) => {
-              const gridRow = `${cell.row} / span 2`;
-              const gridColumn = cell.colSpan
-                ? `${cell.col} / span ${cell.colSpan}`
-                : `${cell.col}`;
-
-              if (cell.isLabel) {
-                return (
-                  <div
-                    key={cell.id}
-                    className={styles.floorLabel}
-                    style={{ gridRow, gridColumn }}
-                  >
-                    {cell.id}
-                  </div>
-                );
-              }
-
-              const info = ROOM_INFO[cell.id];
-              const isPicked = picked.has(cell.id);
-              const isOccupied = occupiedRooms.includes(cell.id);
-              const viewColor = viewOnly ? roomColors[cell.id] : undefined;
-              const color = viewColor ?? TYPE_COLOR[info.type];
-              const pastel = TYPE_PASTEL[info.type];
-
-              const cellClass = [
-                styles.roomCell,
-                viewOnly ? styles.roomViewOnly : "",
-                viewOnly && viewColor ? styles.roomPicked : "",
-                !viewOnly && isPicked ? styles.roomPicked : "",
-                !viewOnly && isOccupied ? styles.roomOccupied : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
-
-              return (
-                <button
-                  key={cell.id}
-                  className={cellClass}
-                  style={
-                    {
-                      gridRow,
-                      gridColumn,
-                      "--c": color,
-                      "--bg": pastel,
-                    } as React.CSSProperties
-                  }
-                  onClick={
-                    viewOnly ? undefined : () => !isOccupied && toggle(cell.id)
-                  }
-                  disabled={!viewOnly && isOccupied}
-                  title={
-                    viewOnly
-                      ? viewColor
-                        ? `${cell.id}호 — 예약됨`
-                        : `${cell.id}호 (${info.type})`
-                      : isOccupied
-                        ? `${cell.id}호 — 사용중`
-                        : `${cell.id}호 (${info.type})`
-                  }
-                >
-                  <span className={styles.cellNum}>{cell.id}호</span>
-                  <span className={styles.cellCap}>
-                    {!viewOnly && isOccupied ? "사용중" : `${info.cap}인`}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <div className={styles.floorWrap}>{renderFloorGrid()}</div>
 
         {viewOnly ? (
           <div className={styles.footer}>

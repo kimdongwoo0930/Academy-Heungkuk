@@ -61,6 +61,37 @@
   background: var(--surface-hover);
 }
 
+/* 층 탭 */
+.floorTabs {
+  display: flex;
+  gap: 6px;
+  padding: 0 20px 10px;
+  flex-shrink: 0;
+}
+
+.floorTab {
+  padding: 5px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.floorTab:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.floorTabActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
 /* 범례 */
 .legend {
   display: flex;
@@ -173,6 +204,27 @@
 .roomOccupied .cellCap {
   font-size: 8px;
   color: #e74c3c !important;
+}
+
+.roomAdminDisabled {
+  background: repeating-linear-gradient(
+    -45deg,
+    #f5f5f5,
+    #f5f5f5 4px,
+    #e8e8e8 4px,
+    #e8e8e8 8px
+  ) !important;
+  border-color: #bbb !important;
+  cursor: not-allowed;
+}
+
+.roomAdminDisabled .cellNum {
+  color: #999;
+}
+
+.roomAdminDisabled .cellCap {
+  font-size: 8px;
+  color: #aaa !important;
 }
 
 .roomViewOnly {

@@ -1,4 +1,13 @@
-import { ROOM_INFO, ROOM_TYPES, RoomType } from "@/lib/constants/rooms";
+import {
+  CellDef,
+  FLOOR_GRID_COLS,
+  FLOOR_GRID_ROWS,
+  FLOOR_LAYOUT_1F,
+  FLOOR_LAYOUT_2F,
+  ROOM_INFO,
+  ROOM_TYPES,
+  RoomType,
+} from "@/lib/constants/rooms";
 import { Reservation, RoomReservation } from "@/types/reservation";
 
 // ── 공통: 월 달력 날짜 목록 생성 ────────────────────────────────────────────
@@ -91,46 +100,9 @@ const TABLE_COMMON_CSS = `
   @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
 `;
 
-// ── RoomPickerModal과 동일한 레이아웃 정의 ──────────────────────────────────
-interface CellDef {
-  id: string;
-  isLabel?: boolean;
-  row: number;
-  col: number;
-  colSpan?: number;
-}
-
-const LAYOUT: CellDef[] = [
-  { id: "109", row: 1, col: 5 },
-  { id: "110", row: 1, col: 6 },
-  { id: "111", row: 1, col: 7 },
-  { id: "화장실", isLabel: true, row: 1, col: 8 },
-  { id: "127", row: 1, col: 9 },
-  { id: "126", row: 1, col: 10 },
-  { id: "108", row: 2, col: 4 },
-  { id: "107", row: 3, col: 3 },
-  { id: "106", row: 4, col: 2 },
-  { id: "105", row: 5, col: 1 },
-  { id: "125", row: 2, col: 11 },
-  { id: "124", row: 3, col: 12 },
-  { id: "123", row: 4, col: 13 },
-  { id: "122", row: 5, col: 14 },
-  { id: "121", row: 6, col: 15 },
-  { id: "120", row: 7, col: 16 },
-  { id: "119", row: 8, col: 17 },
-  { id: "현관", isLabel: true, row: 6, col: 7, colSpan: 2 },
-  { id: "101", row: 6, col: 5 },
-  { id: "102", row: 7, col: 4 },
-  { id: "103", row: 8, col: 3 },
-  { id: "104", row: 9, col: 2 },
-  { id: "112", row: 6, col: 10 },
-  { id: "113", row: 7, col: 11 },
-  { id: "114", row: 8, col: 12 },
-  { id: "115", row: 9, col: 13 },
-  { id: "116", row: 10, col: 14 },
-  { id: "117", row: 11, col: 15 },
-  { id: "118", row: 12, col: 16 },
-];
+// ── rooms.ts에서 레이아웃 import ──────────────────────────────────────────
+// CellDef, FLOOR_LAYOUT_1F, FLOOR_LAYOUT_2F, FLOOR_GRID_COLS, FLOOR_GRID_ROWS는 위에서 import
+const LAYOUT = FLOOR_LAYOUT_1F;
 
 const TYPE_COLOR: Record<string, string> = {
   "1인실": "#EC008C",
@@ -205,8 +177,8 @@ function buildFloorGridHtml(
   <div class="floor-grid" style="
     display:grid;
     gap:${gap}px;
-    grid-template-columns:repeat(17,${cellPx}px);
-    grid-template-rows:repeat(13,${halfRowPx}px);
+    grid-template-columns:repeat(${FLOOR_GRID_COLS},${cellPx}px);
+    grid-template-rows:repeat(${FLOOR_GRID_ROWS},${halfRowPx}px);
   ">${cells}</div>`;
 }
 
@@ -247,8 +219,8 @@ function buildFloorGridHtmlColored(
   <div class="floor-grid" style="
     display:grid;
     gap:${gap}px;
-    grid-template-columns:repeat(17,${cellPx}px);
-    grid-template-rows:repeat(13,${halfRowPx}px);
+    grid-template-columns:repeat(${FLOOR_GRID_COLS},${cellPx}px);
+    grid-template-rows:repeat(${FLOOR_GRID_ROWS},${halfRowPx}px);
   ">${cells}</div>`;
 }
 

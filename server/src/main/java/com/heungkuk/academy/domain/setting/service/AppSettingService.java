@@ -16,4 +16,10 @@ public interface AppSettingService {
     List<String> getDisabledClassRoom();
 
     void saveDisabledClassroom(List<String> disabledClassroom);
+
+    /** 사용불가 숙소 호실 조회 */
+    List<String> getDisabledRooms();
+
+    /** 사용불가 숙소 호실 저장 */
+    void saveDisabledRooms(List<String> disabledRooms);
 }

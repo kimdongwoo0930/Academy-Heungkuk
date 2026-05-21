@@ -53,6 +53,22 @@ public class AppSettingServiceImpl implements AppSettingService {
                 () -> appSettingRepository.save(AppSetting.of("disabledClassroom", value)));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> getDisabledRooms() {
+        return appSettingRepository.findBySettingKey("disabledRoom")
+                .map(s -> s.getSettingValue().isBlank() ? List.<String>of()
+                        : Arrays.asList(s.getSettingValue().split(",")))
+                .orElse(List.of());
+    }
 
+    @Override
+    @Transactional
+    public void saveDisabledRooms(List<String> codes) {
+        String value = String.join(",", codes);
+        appSettingRepository.findBySettingKey("disabledRoom").ifPresentOrElse(
+                s -> s.updateValue(value),
+                () -> appSettingRepository.save(AppSetting.of("disabledRoom", value)));
+    }
 
 }
