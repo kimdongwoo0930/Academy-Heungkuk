@@ -13,8 +13,9 @@ import {
   importReservations,
   ImportResult,
 } from "@/lib/api/reservation";
-import { getSettings, saveSettings, getDisabledClassrooms, saveDisabledClassrooms } from "@/lib/api/settings";
+import { getSettings, saveSettings, getDisabledClassrooms, saveDisabledClassrooms, getDisabledRooms, saveDisabledRooms } from "@/lib/api/settings";
 import { CLASSROOM_CATEGORIES, CLASSROOM_LIST } from "@/lib/constants/classrooms";
+import { CellDef, FLOOR_GRID_COLS, FLOOR_GRID_ROWS, FLOOR_LAYOUT_1F, FLOOR_LAYOUT_2F, ROOM_INFO, RoomType } from "@/lib/constants/rooms";
 import { isAdmin, parseJwtPayload } from "@/lib/utils/auth";
 import {
   AppSettings,
@@ -45,14 +46,21 @@ interface CreateForm {
   password: string;
 }
 
-type TabKey = "account" | "price" | "classroom" | "backup";
+type TabKey = "account" | "price" | "classroom" | "accommodation" | "backup";
 
 const TABS: { key: TabKey; label: string; icon: string }[] = [
   { key: "account", label: "계정 관리", icon: "👤" },
   { key: "price", label: "요금 · 담당자", icon: "💰" },
   { key: "classroom", label: "강의실 관리", icon: "🏫" },
+  { key: "accommodation", label: "숙소 관리", icon: "🏠" },
   { key: "backup", label: "데이터 백업", icon: "💾" },
 ];
+
+const ROOM_TYPE_COLOR: Record<RoomType, string> = {
+  "1인실": "#EC008C",
+  "2인실": "#0087D4",
+  "4인실": "#F5A623",
+};
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -81,6 +89,12 @@ export default function SettingsPage() {
   const [classroomSaving, setClassroomSaving] = useState(false);
   const [classroomSaved, setClassroomSaved] = useState(false);
 
+  // ── 숙소 관리 state ──
+  const [disabledRooms, setDisabledRooms] = useState<Set<string>>(new Set());
+  const [roomSaving, setRoomSaving] = useState(false);
+  const [roomSaved, setRoomSaved] = useState(false);
+  const [activeRoomFloor, setActiveRoomFloor] = useState<"1" | "2">("1");
+
   useEffect(() => {
     getSettings()
       .then((raw) => {
@@ -93,6 +107,9 @@ export default function SettingsPage() {
       });
     getDisabledClassrooms()
       .then((codes) => setDisabledClassrooms(new Set(codes)))
+      .catch(() => {});
+    getDisabledRooms()
+      .then((codes) => setDisabledRooms(new Set(codes)))
       .catch(() => {});
   }, []);
 
@@ -149,6 +166,28 @@ export default function SettingsPage() {
       alert("저장에 실패했습니다.");
     } finally {
       setClassroomSaving(false);
+    }
+  };
+
+  const toggleDisabledRoom = (code: string) => {
+    setDisabledRooms((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  };
+
+  const handleRoomSave = async () => {
+    setRoomSaving(true);
+    try {
+      await saveDisabledRooms(Array.from(disabledRooms));
+      setRoomSaved(true);
+      setTimeout(() => setRoomSaved(false), 2000);
+    } catch {
+      alert("저장에 실패했습니다.");
+    } finally {
+      setRoomSaving(false);
     }
   };
 
@@ -517,6 +556,111 @@ export default function SettingsPage() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* 숙소 관리 */}
+        {activeTab === "accommodation" && (
+          <div className={`${styles.panel} ${styles.panelWide}`}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h2 className={styles.panelTitle}>숙소 관리</h2>
+                <p className={styles.panelDesc}>
+                  클릭하여 예약 불가 호실을 설정합니다. 예약 모달에서 사용불가로 표시됩니다.
+                </p>
+              </div>
+              <button
+                className={styles.saveBtn}
+                onClick={handleRoomSave}
+                disabled={roomSaving}
+              >
+                {roomSaved ? "저장됨 ✓" : roomSaving ? "저장 중..." : "저장"}
+              </button>
+            </div>
+            <div className={styles.classroomHead}>
+              <span className={styles.classroomCount}>
+                사용불가 {disabledRooms.size}개 / 전체 54개
+              </span>
+            </div>
+            {/* 층 탭 */}
+            <div className={styles.roomFloorTabs}>
+              {(["1", "2"] as const).map((floor) => (
+                <button
+                  key={floor}
+                  className={`${styles.roomFloorTab} ${activeRoomFloor === floor ? styles.roomFloorTabActive : ""}`}
+                  onClick={() => setActiveRoomFloor(floor)}
+                >
+                  {floor}층
+                </button>
+              ))}
+            </div>
+            {/* 도면 */}
+            <div className={styles.roomFloorWrap}>
+              <div
+                className={styles.roomFloorGrid}
+                style={{
+                  gridTemplateColumns: `repeat(${FLOOR_GRID_COLS}, 52px)`,
+                  gridTemplateRows: `repeat(${FLOOR_GRID_ROWS}, 26px)`,
+                }}
+              >
+                {(activeRoomFloor === "1" ? FLOOR_LAYOUT_1F : FLOOR_LAYOUT_2F).map((cell: CellDef, idx: number) => {
+                  const gridRow = `${cell.row} / span 2`;
+                  const gridColumn = cell.colSpan
+                    ? `${cell.col} / span ${cell.colSpan}`
+                    : `${cell.col}`;
+
+                  if (cell.isLabel) {
+                    return (
+                      <div
+                        key={`${cell.id}-${idx}`}
+                        className={styles.roomFloorLabel}
+                        style={{ gridRow, gridColumn }}
+                      >
+                        {cell.id}
+                      </div>
+                    );
+                  }
+
+                  const info = ROOM_INFO[cell.id];
+                  const isDisabled = disabledRooms.has(cell.id);
+                  const typeColor = ROOM_TYPE_COLOR[info.type as RoomType];
+
+                  return (
+                    <button
+                      key={cell.id}
+                      className={`${styles.roomFloorCell} ${isDisabled ? styles.roomCellDisabled : styles.roomCellAvailable}`}
+                      style={
+                        {
+                          gridRow,
+                          gridColumn,
+                          "--rc": typeColor,
+                        } as React.CSSProperties
+                      }
+                      onClick={() => toggleDisabledRoom(cell.id)}
+                      title={`${cell.id}호 (${info.type}) — ${isDisabled ? "사용불가" : "사용 가능"}`}
+                    >
+                      <span className={styles.roomCellNum}>{cell.id}호</span>
+                      <span className={styles.roomCellStatus}>
+                        {isDisabled ? "불가" : "가능"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* 범례 */}
+            <div className={styles.roomLegend}>
+              {([["1인실", "#EC008C"], ["2인실", "#0087D4"], ["4인실", "#F5A623"]] as [string, string][]).map(([type, color]) => (
+                <div key={type} className={styles.roomLegendItem}>
+                  <span className={styles.roomLegendDot} style={{ background: color }} />
+                  <span>{type}</span>
+                </div>
+              ))}
+              <div className={styles.roomLegendItem}>
+                <span className={styles.roomLegendDot} style={{ background: "#ccc" }} />
+                <span>사용불가</span>
+              </div>
             </div>
           </div>
         )}

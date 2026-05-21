@@ -70,6 +70,10 @@
   max-width: 900px;
 }
 
+.panelWide {
+  max-width: 1100px;
+}
+
 .panelHeader {
   display: flex;
   align-items: flex-start;
@@ -712,4 +716,126 @@
 
 .classroomDisabled .classroomStatus {
   color: #e8306a;
+}
+
+
+/* ── 숙소 관리 ── */
+.roomFloorTabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.roomFloorTab {
+  padding: 6px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.roomFloorTab:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.roomFloorTabActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+.roomFloorWrap {
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+
+.roomFloorGrid {
+  display: grid;
+  gap: 4px;
+}
+
+.roomFloorLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  color: var(--text-sub);
+}
+
+.roomFloorCell {
+  border-radius: 6px;
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.roomFloorCell:hover {
+  filter: brightness(0.9);
+  transform: translateY(-1px);
+}
+
+.roomCellAvailable {
+  background: color-mix(in srgb, var(--rc, #F5A623) 15%, transparent);
+  border-color: color-mix(in srgb, var(--rc, #F5A623) 40%, transparent);
+}
+
+.roomCellDisabled {
+  background: #f1f1f1;
+  border-color: #ccc;
+}
+
+.roomCellNum {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.roomCellStatus {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.roomCellAvailable .roomCellStatus {
+  color: #0eab6e;
+}
+
+.roomCellDisabled .roomCellStatus {
+  color: #aaa;
+}
+
+.roomLegend {
+  display: flex;
+  gap: 14px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.roomLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.roomLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }

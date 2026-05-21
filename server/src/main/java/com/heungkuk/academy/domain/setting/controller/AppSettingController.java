@@ -40,4 +40,15 @@ public class AppSettingController {
         appSettingService.saveDisabledClassroom(request);
         return CommonResponse.success("저장되었습니다.", null);
     }
+
+    @GetMapping("/disabledRoom")
+    public CommonResponse<List<String>> getDisabledRoom() {
+        return CommonResponse.success(appSettingService.getDisabledRooms());
+    }
+
+    @PutMapping("/disabledRoom")
+    public CommonResponse<Void> saveDisabledRoom(@RequestBody List<String> request) {
+        appSettingService.saveDisabledRooms(request);
+        return CommonResponse.success("저장되었습니다.", null);
+    }
 }
