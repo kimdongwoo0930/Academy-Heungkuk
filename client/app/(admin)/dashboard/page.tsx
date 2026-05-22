@@ -95,18 +95,6 @@ export default function DashboardPage() {
     }
   }, [todayStr]);
 
-  const openTodayList = useCallback(async () => {
-    setFetching(true);
-    try {
-      const items = await getReservationsByRange(todayStr, todayStr);
-      const todayCheckIns = items.filter(
-        (r) => r.startDate === todayStr && isActiveReservation(r),
-      );
-      setListModal({ title: "오늘 입실 업체", items: todayCheckIns });
-    } finally {
-      setFetching(false);
-    }
-  }, [todayStr]);
 
   const handleSave = useCallback(
     async (saved: Reservation) => {
@@ -174,7 +162,7 @@ export default function DashboardPage() {
           icon="🏨"
           variant="green"
           animDelay="0.10s"
-          onClick={openTodayList}
+
           subText={
             <>
               총 <span className={styles.greenText}>{todayTotalPeople}명</span>{" "}

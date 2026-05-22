@@ -41,7 +41,7 @@ export default function TodaySchedule({ todayClassrooms, onItemClick }: Props) {
   return (
     <div className={styles.card}>
       <div className={styles.head}>
-        <span className={styles.title}>금일 예약 현황</span>
+        <span className={styles.title}>금일 이용 현황</span>
         <span className={styles.count}>{groups.length}건</span>
       </div>
       <div className={styles.list}>
