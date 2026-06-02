@@ -27,13 +27,39 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
   @Query(value = """
       SELECT r FROM Reservation r
-      WHERE (:keyword IS NULL OR r.organization LIKE %:keyword% OR r.customer LIKE %:keyword%)
+      WHERE (:keyword IS NULL
+          OR r.organization LIKE %:keyword%
+          OR r.customer LIKE %:keyword%
+          OR r.reservationCode LIKE %:keyword%
+          OR r.customerPhone LIKE %:keyword%
+          OR r.customerPhone2 LIKE %:keyword%
+          OR r.siteManagerPhone LIKE %:keyword%
+          OR r.siteManagerPhone2 LIKE %:keyword%
+          OR r.billingManagerPhone LIKE %:keyword%
+          OR REPLACE(r.customerPhone, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+          OR REPLACE(r.customerPhone2, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+          OR REPLACE(r.siteManagerPhone, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+          OR REPLACE(r.siteManagerPhone2, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+          OR REPLACE(r.billingManagerPhone, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%'))
         AND (:status IS NULL OR r.status = :status)
         AND (:startDate IS NULL OR r.startDate >= :startDate)
         AND (:endDate IS NULL OR r.endDate <= :endDate)
       """, countQuery = """
       SELECT COUNT(r) FROM Reservation r
-      WHERE (:keyword IS NULL OR r.organization LIKE %:keyword% OR r.customer LIKE %:keyword%)
+      WHERE (:keyword IS NULL
+          OR r.organization LIKE %:keyword%
+          OR r.customer LIKE %:keyword%
+          OR r.reservationCode LIKE %:keyword%
+          OR r.customerPhone LIKE %:keyword%
+          OR r.customerPhone2 LIKE %:keyword%
+          OR r.siteManagerPhone LIKE %:keyword%
+          OR r.siteManagerPhone2 LIKE %:keyword%
+          OR r.billingManagerPhone LIKE %:keyword%
+          OR REPLACE(r.customerPhone, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+          OR REPLACE(r.customerPhone2, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+          OR REPLACE(r.siteManagerPhone, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+          OR REPLACE(r.siteManagerPhone2, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+          OR REPLACE(r.billingManagerPhone, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%'))
         AND (:status IS NULL OR r.status = :status)
         AND (:startDate IS NULL OR r.startDate >= :startDate)
         AND (:endDate IS NULL OR r.endDate <= :endDate)

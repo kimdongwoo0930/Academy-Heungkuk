@@ -153,7 +153,7 @@ export default function ReservationPage() {
           <span className={styles.filterLabel}>검색명</span>
           <input
             className={styles.searchInput}
-            placeholder="단체명 / 담당자 / 예약코드를 입력하세요."
+            placeholder="단체명 / 담당자 / 연락처 / 예약코드를 입력하세요."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { setDebouncedSearch(search); setPage(0); } }}
