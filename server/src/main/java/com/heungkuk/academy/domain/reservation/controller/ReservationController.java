@@ -75,10 +75,10 @@ public class ReservationController {
         }
 
         /** 예약 관리 리스트용 — 키워드 + 상태 + 날짜 범위 + 페이징 */
-        @Operation(summary = "예약 검색", description = "키워드(단체명·담당자), 상태, 날짜 범위로 필터링하여 페이지 단위로 반환합니다.")
+        @Operation(summary = "예약 검색", description = "키워드(단체명·담당자·연락처·예약코드), 상태, 날짜 범위로 필터링하여 페이지 단위로 반환합니다.")
         @GetMapping("/search")
         public ResponseEntity<CommonResponse<Page<ReservationResponse>>> searchReservations(
-                        @Parameter(description = "검색어 (단체명 또는 담당자명)") @RequestParam(
+                        @Parameter(description = "검색어 (단체명/담당자명/연락처/예약코드)") @RequestParam(
                                         required = false) String keyword,
                         @Parameter(description = "예약 상태 (확정/예약/문의/취소)") @RequestParam(
                                         required = false) String status,

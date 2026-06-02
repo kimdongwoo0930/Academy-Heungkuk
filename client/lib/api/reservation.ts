@@ -129,24 +129,41 @@ async function downloadBlob(endpoint: string, filename: string): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+function formatIssueDate(): string {
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: 'numeric',
+    day: 'numeric',
+  }).format(new Date());
+}
+
+function sanitizeFilenamePart(value: string): string {
+  return value.replace(/[\\/:*?"<>|]/g, '').trim();
+}
+
+function buildDocumentFilename(documentName: string, id: number, org?: string): string {
+  const organization = org ? sanitizeFilenamePart(org) : String(id);
+  return `흥국생명용인연수원_${documentName}_${organization}(${formatIssueDate()}).xlsx`;
+}
+
 export async function downloadTrade(id: number, org?: string): Promise<void> {
   await downloadBlob(
     `/v1/admin/reservations/${id}/trade`,
-    org ? `거래명세서_${org}.xlsx` : `거래명세서_${id}.xlsx`,
+    buildDocumentFilename('거래명세서', id, org),
   );
 }
 
 export async function downloadEstimate(id: number, org?: string): Promise<void> {
   await downloadBlob(
     `/v1/admin/reservations/${id}/estimate`,
-    org ? `견적서_${org}.xlsx` : `견적서_${id}.xlsx`,
+    buildDocumentFilename('견적서', id, org),
   );
 }
 
 export async function downloadConfirmation(id: number, org?: string): Promise<void> {
   await downloadBlob(
     `/v1/admin/reservations/${id}/confirmation`,
-    org ? `확인서_${org}.xlsx` : `확인서_${id}.xlsx`,
+    buildDocumentFilename('확인서', id, org),
   );
 }
 
