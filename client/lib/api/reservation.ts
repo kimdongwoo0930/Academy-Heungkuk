@@ -132,10 +132,9 @@ async function downloadBlob(endpoint: string, filename: string): Promise<void> {
 function formatIssueDate(): string {
   return new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date()).replace(/\.\s?/g, '-').replace(/-$/, '');
+    month: 'numeric',
+    day: 'numeric',
+  }).format(new Date());
 }
 
 function sanitizeFilenamePart(value: string): string {
@@ -144,7 +143,7 @@ function sanitizeFilenamePart(value: string): string {
 
 function buildDocumentFilename(documentName: string, id: number, org?: string): string {
   const organization = org ? sanitizeFilenamePart(org) : String(id);
-  return `흥국생명용인연수원${documentName}_${organization}(${formatIssueDate()}).xlsx`;
+  return `흥국생명용인연수원_${documentName}_${organization}(${formatIssueDate()}).xlsx`;
 }
 
 export async function downloadTrade(id: number, org?: string): Promise<void> {
