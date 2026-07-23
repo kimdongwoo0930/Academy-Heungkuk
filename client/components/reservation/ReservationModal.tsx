@@ -855,7 +855,8 @@ export default function ReservationModal({ reservation, allReservations, onClose
                                             className={styles.input}
                                             type="number"
                                             min={0}
-                                            value={form.people}
+                                            placeholder="0"
+                                            value={form.people === 0 ? '' : form.people}
                                             onChange={(e) =>
                                                 setField('people', e.target.value === '' ? 0 : Number(e.target.value))
                                             }
