@@ -201,7 +201,9 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
 
-
+        /**
+         * 응답 형식 생성 함수
+         */
         private ReservationResponse toResponse(Reservation reservation) {
                 List<RoomReservationResponse> rooms =
                                 roomReservationRepository.findByReservation(reservation).stream()
@@ -215,6 +217,9 @@ public class ReservationServiceImpl implements ReservationService {
                 return ReservationResponse.of(reservation, rooms, classrooms, meals);
         }
 
+        /**
+         * 예약 객실을 한번에 저장하는 함수
+         */
         private void saveRooms(Reservation reservation, ReservationRequest request) {
                 if (request.getRooms() == null || request.getRooms().isEmpty())
                         return;
@@ -225,7 +230,9 @@ public class ReservationServiceImpl implements ReservationService {
 
                 roomReservationRepository.saveAll(roomReservations);
         }
-
+        /**
+         * 예약 강의실을 한번에 저장하는 함수
+         */
         private void saveClassrooms(Reservation reservation, ReservationRequest request) {
                 if (request.getClassrooms() == null || request.getClassrooms().isEmpty())
                         return;
@@ -235,6 +242,9 @@ public class ReservationServiceImpl implements ReservationService {
                 classroomReservationRepository.saveAll(classroomReservations);
         }
 
+        /**
+         * 예약 식수를 한번에 저장하는 함수
+         */
         private void saveMeals(Reservation reservation, ReservationRequest request) {
                 if (request.getMeals() != null && !request.getMeals().isEmpty()) {
                         List<MealReservation> mealReservations = request.getMeals().stream()

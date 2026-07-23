@@ -127,6 +127,26 @@ export default function RoomPickerModal({
 
   const layout = FLOOR_LAYOUTS[activeFloor];
 
+  // 현재 층에서 선택 가능한(사용중·사용불가 제외) 호실
+  const selectableRooms = layout
+    .filter((cell) => !cell.isLabel)
+    .map((cell) => cell.id)
+    .filter(
+      (id) => !occupiedRooms.includes(id) && !disabledRooms.includes(id),
+    );
+
+  const allSelected =
+    selectableRooms.length > 0 && selectableRooms.every((id) => picked.has(id));
+
+  const toggleAll = () => {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (allSelected) selectableRooms.forEach((id) => next.delete(id));
+      else selectableRooms.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   const renderFloorGrid = () => (
     <div
       className={styles.floorGrid}
@@ -255,6 +275,15 @@ export default function RoomPickerModal({
               {floor}층
             </button>
           ))}
+          {!viewOnly && (
+            <button
+              className={styles.selectAllBtn}
+              onClick={toggleAll}
+              disabled={selectableRooms.length === 0}
+            >
+              {allSelected ? "전체해제" : "전체선택"}
+            </button>
+          )}
         </div>
 
         {/* 범례 */}
