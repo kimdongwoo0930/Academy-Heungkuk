@@ -1,6 +1,10 @@
 package com.heungkuk.academy.domain.survey.service;
 
 import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.heungkuk.academy.domain.survey.dto.request.SurveyRequest;
 import com.heungkuk.academy.domain.survey.dto.response.SurveyResponse;
 import com.heungkuk.academy.domain.survey.dto.response.SurveyTokenResponse;
@@ -28,4 +32,7 @@ public interface SurveyService {
 
     /** 설문 토큰 사용 여부 확인 (고객용, 인증 불필요) */
     boolean isTokenUsed(String token);
+
+    /** 설문 검색및 목록 조회(페이징) */
+    Page<SurveyResponse> getSurveyPage(String keyword, Pageable pageable);
 }

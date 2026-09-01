@@ -1,5 +1,6 @@
 import instance from './instance';
 import axios from 'axios';
+import { PageResult } from '@/types/reservation';
 import { SurveyTokenResponse, SurveyResult, SurveyAnswers } from '@/types/survey';
 
 export async function createSurveyToken(reservationId: string): Promise<SurveyTokenResponse> {
@@ -14,6 +15,16 @@ export async function getAllSurveyTokens(): Promise<SurveyTokenResponse[]> {
 
 export async function getAllSurveys(): Promise<SurveyResult[]> {
   const res = await instance.get('/v1/admin/surveys');
+  return res.data.data;
+}
+
+/** 설문 결과 리스트 — 검색 + 페이징 (설문 관리 화면 하단 목록용) */
+export async function getSurveyPage(params: {
+  keyword?: string;
+  page?: number;
+  size?: number;
+}): Promise<PageResult<SurveyResult>> {
+  const res = await instance.get('/v1/admin/surveys/search', { params });
   return res.data.data;
 }
 
