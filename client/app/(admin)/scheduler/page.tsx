@@ -27,10 +27,10 @@ function checkIsHoliday(date: Date): boolean {
 }
 
 const CLASSROOM_GROUPS = [
-  { type: "대강의실", bg: "bgYellow", rooms: [{ id: "105", cap: 120 }] },
+  { type: "대강의실", bg: "bgDaeGang", rooms: [{ id: "105", cap: 120 }] },
   {
     type: "중강의실",
-    bg: "bgYellow",
+    bg: "bgJungGang",
     rooms: [
       { id: "201", cap: 70 },
       { id: "203", cap: 50 },
@@ -39,7 +39,7 @@ const CLASSROOM_GROUPS = [
   },
   {
     type: "소강의실",
-    bg: "bgYellow",
+    bg: "bgSoGang",
     rooms: [
       { id: "101", cap: 30 },
       { id: "102", cap: 20 },
@@ -49,7 +49,7 @@ const CLASSROOM_GROUPS = [
   },
   {
     type: "분임실",
-    bg: "bgGreen",
+    bg: "bgBunim",
     rooms: [
       { id: "106", cap: 12 },
       { id: "107", cap: 12 },
@@ -59,7 +59,7 @@ const CLASSROOM_GROUPS = [
   },
   {
     type: "다목적실",
-    bg: "bgBlue",
+    bg: "bgDamok",
     rooms: [
       { id: "A", cap: 80 },
       { id: "B", cap: 40 },
@@ -82,6 +82,15 @@ interface CalDay {
   isCurrent: boolean; // 이번 달 여부
 }
 
+// 강의실 셀 드래그로 사각형(호실 N행 × 날짜 N일) 선택
+interface DragSel {
+  half: number; // halves 인덱스 (블록 밖으로는 드래그 안 됨)
+  anchorRoom: string; // 드래그 시작 호실
+  hoverRoom: string; // 현재 포인터 호실
+  anchorDate: string; // 드래그 시작 dateStr
+  hoverDate: string; // 현재 포인터 dateStr
+}
+
 export default function SchedulerPage() {
   const today = new Date();
 
@@ -94,7 +103,9 @@ export default function SchedulerPage() {
     date: string;
     endDate?: string;
     roomId?: string;
+    cells?: { roomId: string; dateStr: string }[]; // 강의실 드래그 사각형 선택
   } | null>(null);
+  const [drag, setDrag] = useState<DragSel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchReservations = (y: number, m: number) => {
@@ -158,18 +169,28 @@ export default function SchedulerPage() {
   );
 
   // ── 스타일 헬퍼 ──
-  const isRedDay = (_dateStr: string, date: Date) =>
-    redDaySet.has(makeDateStr(date));
+  // 토요일 / 일요일·공휴일 구분 (다크 모드에서 색상이 갈림)
+  const dayKind = (cal: CalDay): "sat" | "sun" | null => {
+    const dow = cal.date.getDay();
+    if (dow === 6) return "sat";
+    if (dow === 0) return "sun";
+    if (redDaySet.has(cal.dateStr)) return "sun"; // 평일 공휴일은 일요일과 동일 취급
+    return null;
+  };
 
   const thCls = (cal: CalDay) => {
     if (!cal.isCurrent) return styles.otherMonthTh;
-    if (isRedDay(cal.dateStr, cal.date)) return styles.weekendTh;
+    const kind = dayKind(cal);
+    if (kind === "sat") return `${styles.weekendTh} ${styles.satTh}`;
+    if (kind === "sun") return `${styles.weekendTh} ${styles.sunTh}`;
     return "";
   };
 
   const tdCls = (cal: CalDay) => {
     if (!cal.isCurrent) return styles.otherMonthCol;
-    if (isRedDay(cal.dateStr, cal.date)) return styles.weekendCol;
+    const kind = dayKind(cal);
+    if (kind === "sat") return `${styles.weekendCol} ${styles.satCol}`;
+    if (kind === "sun") return `${styles.weekendCol} ${styles.sunCol}`;
     return "";
   };
 
@@ -212,6 +233,83 @@ export default function SchedulerPage() {
             c.classroomName === roomId && String(c.reservedDate) === dateStr,
         ),
     );
+
+  // ── 강의실 드래그 사각형 선택 ──
+  // 세로: 보이는 강의실 행 순서(그룹 경계 넘나듦), 가로: 같은 2주 블록 안의 날짜.
+  const visibleRoomIds = useMemo(
+    () =>
+      CLASSROOM_GROUPS.flatMap((g) =>
+        g.rooms.filter((r) => !disabledClassrooms.has(r.id)).map((r) => r.id),
+      ),
+    [disabledClassrooms],
+  );
+
+  // 예약이 이미 있는 (호실|날짜) 집합 — 사각형에 하나라도 걸리면 드래그 무효
+  const occupiedSet = useMemo(() => {
+    const s = new Set<string>();
+    reservations.forEach((r) => {
+      if (r.status === "취소") return;
+      r.classrooms?.forEach((c) =>
+        s.add(`${c.classroomName}|${String(c.reservedDate)}`),
+      );
+    });
+    return s;
+  }, [reservations]);
+
+  // anchor~hover 사각형의 모든 셀. 예약과 겹치면 null(무효).
+  const computeDragCells = (
+    d: DragSel,
+  ): { roomId: string; dateStr: string }[] | null => {
+    const hd = halves[d.half];
+    if (!hd) return null;
+    const dA = hd.findIndex((x) => x.dateStr === d.anchorDate);
+    const dH = hd.findIndex((x) => x.dateStr === d.hoverDate);
+    const rA = visibleRoomIds.indexOf(d.anchorRoom);
+    const rH = visibleRoomIds.indexOf(d.hoverRoom);
+    if (dA < 0 || dH < 0 || rA < 0 || rH < 0) return null;
+    const rooms = visibleRoomIds.slice(Math.min(rA, rH), Math.max(rA, rH) + 1);
+    const dates = hd
+      .slice(Math.min(dA, dH), Math.max(dA, dH) + 1)
+      .map((x) => x.dateStr);
+    const out: { roomId: string; dateStr: string }[] = [];
+    for (const roomId of rooms) {
+      for (const dateStr of dates) {
+        if (occupiedSet.has(`${roomId}|${dateStr}`)) return null; // 겹침 → 전체 무효
+        out.push({ roomId, dateStr });
+      }
+    }
+    return out;
+  };
+
+  const dragCells = drag ? computeDragCells(drag) : null;
+  const dragCellSet = dragCells
+    ? new Set(dragCells.map((c) => `${c.roomId}|${c.dateStr}`))
+    : null;
+  const dragging = drag !== null;
+
+  // 마우스를 어디서 떼든 드래그 종료 → 2셀 이상이면 예약 모달을 기간+호실로 연다
+  useEffect(() => {
+    if (!dragging) return;
+    const finish = () => {
+      setDrag((d) => {
+        if (d) {
+          const cells = computeDragCells(d);
+          if (cells && cells.length >= 2) {
+            const dates = [...new Set(cells.map((c) => c.dateStr))].sort();
+            setCreateDefaults({
+              date: dates[0],
+              endDate: dates[dates.length - 1],
+              roomId: d.anchorRoom,
+              cells,
+            });
+          }
+        }
+        return null;
+      });
+    };
+    window.addEventListener("mouseup", finish);
+    return () => window.removeEventListener("mouseup", finish);
+  }, [dragging]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getRoomCount = (dateStr: string, type: string) => {
     let count = 0;
@@ -273,7 +371,7 @@ export default function SchedulerPage() {
                 <div className={styles.tableScroll}>
                 <div style={{ minWidth: leftW, width: "100%" }}>
                   <table
-                    className={styles.table}
+                    className={`${styles.table}${drag ? ` ${styles.dragging}` : ""}`}
                     style={{ minWidth: leftW, width: "100%" }}
                   >
                     <colgroup>
@@ -360,11 +458,44 @@ export default function SchedulerPage() {
                               >
                                 {room.cap != null ? `${room.cap} 인` : ""}
                               </td>
-                              {cells.map(({ cal, res, span }) => (
+                              {cells.map(({ cal, res, span }) => {
+                                const inDrag =
+                                  drag?.half === hi &&
+                                  !!dragCellSet?.has(
+                                    `${room.id}|${cal.dateStr}`,
+                                  );
+                                return (
                                 <td
                                   key={cal.dateStr}
                                   colSpan={span > 1 ? span : undefined}
-                                  className={`${tdCls(cal) || styles[group.bg]}${ri === 0 && gi > 0 ? ` ${styles.groupDivider}` : ""}`}
+                                  className={`${tdCls(cal) || styles[group.bg]}${ri === 0 && gi > 0 ? ` ${styles.groupDivider}` : ""}${inDrag ? ` ${styles.dragSel}` : ""}`}
+                                  onMouseDown={
+                                    res
+                                      ? undefined
+                                      : (e) => {
+                                          if (e.button !== 0) return;
+                                          e.preventDefault(); // 텍스트 선택 방지
+                                          setDrag({
+                                            half: hi,
+                                            anchorRoom: room.id,
+                                            hoverRoom: room.id,
+                                            anchorDate: cal.dateStr,
+                                            hoverDate: cal.dateStr,
+                                          });
+                                        }
+                                  }
+                                  onMouseEnter={() =>
+                                    setDrag((d) => {
+                                      if (!d || d.half !== hi) return d;
+                                      const cand = {
+                                        ...d,
+                                        hoverRoom: room.id,
+                                        hoverDate: cal.dateStr,
+                                      };
+                                      // 예약과 겹치는 확장은 거부(직전 상태 유지)
+                                      return computeDragCells(cand) ? cand : d;
+                                    })
+                                  }
                                   onDoubleClick={() =>
                                     !res &&
                                     handleCellDoubleClick(cal.dateStr, room.id)
@@ -386,7 +517,8 @@ export default function SchedulerPage() {
                                     </ReservationTooltip>
                                   )}
                                 </td>
-                              ))}
+                                );
+                              })}
                             </tr>
                           );
                         }),
@@ -600,13 +732,18 @@ export default function SchedulerPage() {
             createDefaults.roomId
               ? {
                   startDate: createDefaults.date,
-                  endDate: createDefaults.date,
-                  classrooms: [
-                    {
-                      classroomName: createDefaults.roomId,
-                      reservedDate: createDefaults.date,
-                    },
-                  ],
+                  endDate: createDefaults.endDate ?? createDefaults.date,
+                  classrooms: (
+                    createDefaults.cells ?? [
+                      {
+                        roomId: createDefaults.roomId as string,
+                        dateStr: createDefaults.date,
+                      },
+                    ]
+                  ).map((c) => ({
+                    classroomName: c.roomId,
+                    reservedDate: c.dateStr,
+                  })),
                 }
               : {
                   startDate: createDefaults.date,

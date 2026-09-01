@@ -1,9 +1,13 @@
 package com.heungkuk.academy.domain.survey.repository;
 
 import java.util.List;
+
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import com.heungkuk.academy.domain.survey.entity.Survey;
 import com.heungkuk.academy.domain.survey.entity.SurveyToken;
 
@@ -37,6 +41,25 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
             WHERE r.status != '취소'
             """)
     SatisfactionStats getSatisfactionStats();
+
+    @Query(value = """
+            SELECT s FROM Survey s
+            JOIN s.surveyToken t
+            LEFT JOIN Reservation r ON r.reservationCode = t.reservationId
+            WHERE (:keyword IS NULL
+                OR r.organization LIKE %:keyword%
+                OR r.customer LIKE %:keyword%
+                OR t.reservationId LIKE %:keyword%)
+            """, countQuery = """
+            SELECT COUNT(s) FROM Survey s
+            JOIN s.surveyToken t
+            LEFT JOIN Reservation r ON r.reservationCode = t.reservationId
+            WHERE (:keyword IS NULL
+                OR r.organization LIKE %:keyword%
+                OR r.customer LIKE %:keyword%
+                OR t.reservationId LIKE %:keyword%)
+            """)
+    Page<Survey> searchSurveys(@Param("keyword") String keyword, Pageable pageable);
 
     interface SatisfactionStats {
         Double getStaffService();

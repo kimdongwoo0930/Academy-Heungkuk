@@ -4,6 +4,9 @@ package com.heungkuk.academy.domain.survey.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,12 +94,25 @@ public class SurveyServiceImpl implements SurveyService {
 
     @Override
     public List<SurveyResponse> getSurveyList() {
-        return surveyRepository.findAllByOrderByCreatedAtDesc().stream().map(survey -> {
+        return surveyRepository.findAll().stream().map(survey -> {
             String code = survey.getSurveyToken().getReservationId();
             Reservation res = reservationRepository.findByReservationCode(code).orElse(null);
             return SurveyResponse.from(survey, res);
         }).toList();
     }
+
+    @Override
+    public Page<SurveyResponse> getSurveyPage(String keyword, Pageable pageable) {
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword;
+        Page<Survey> page = surveyRepository.searchSurveys(kw, pageable);
+        List<SurveyResponse> content = page.getContent().stream().map(survey -> {
+            String code = survey.getSurveyToken().getReservationId();
+            Reservation res = reservationRepository.findByReservationCode(code).orElse(null);
+            return SurveyResponse.from(survey, res);
+        }).toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
+    }
+
 
     @Override
     public List<SurveyTokenResponse> getAllTokens() {

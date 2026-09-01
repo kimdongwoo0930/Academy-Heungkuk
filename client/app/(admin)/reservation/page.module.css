@@ -83,7 +83,7 @@
 .filterCard {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 14px;
   overflow: hidden;
   box-shadow: var(--shadow-elevated);
@@ -254,7 +254,7 @@
 .tableWrap {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: var(--shadow-elevated);
 }

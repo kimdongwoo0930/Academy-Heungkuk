@@ -16,8 +16,8 @@
   background: linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
   display: flex;
   flex-direction: column;
-  z-index: 100;
-  transition: width 0.2s ease;
+  z-index: 200;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
@@ -37,6 +37,11 @@
   width: var(--sidebar-collapsed-width);
 }
 
+/* hover 시 콘텐츠 위로 떠서 펼쳐지는 상태 */
+.sidebar.floating {
+  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.3);
+}
+
 .logo {
   padding: 20px 16px 16px;
   display: flex;
@@ -44,6 +49,12 @@
   gap: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   flex-shrink: 0;
+}
+
+/* 좁을 때 로고 마크를 레일 정중앙(= nav 아이콘과 같은 축)에 맞춤 */
+.sidebar.collapsed .logo {
+  padding-left: 8px;
+  padding-right: 0;
 }
 
 .logoIconWrap {
@@ -59,29 +70,21 @@
   display: block;
 }
 
-.toggleBtn {
-  margin-left: auto;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--sidebar-text-soft);
-  font-size: 18px;
-  border-radius: 4px;
-  flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
-}
-
-.toggleBtn:hover {
-  background: var(--sidebar-hover);
-  color: var(--sidebar-text);
-}
-
 .logoTextWrap {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  white-space: nowrap;
+  opacity: 1;
+  /* 펼쳐질 때: 폭이 어느 정도 벌어진 뒤 텍스트가 서서히 나타남 */
+  transition: opacity 0.16s ease 0.14s;
+}
+
+.sidebar.collapsed .logoTextWrap {
+  opacity: 0;
+  /* 접힐 때: 폭이 줄기 전에 먼저 사라짐 */
+  transition: opacity 0.06s ease;
+  pointer-events: none;
 }
 
 .logoName {
@@ -126,14 +129,29 @@
   white-space: nowrap;
 }
 
-.navItemCollapsed {
-  padding: 10px 0;
+/* 좁을 때: 아이콘을 셀 정중앙에 두고 active 하이라이트도 아이콘과 동심으로 */
+.sidebar.collapsed .navItem {
+  padding-left: 0;
+  padding-right: 0;
   justify-content: center;
 }
 
-.logoutBtnCollapsed {
-  padding: 10px 0;
-  justify-content: center;
+.navLabel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  opacity: 1;
+  transition: opacity 0.16s ease 0.14s;
+}
+
+.sidebar.collapsed .navLabel {
+  flex: 0 0 0;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.06s ease;
+  pointer-events: none;
 }
 
 .navItem:hover {
