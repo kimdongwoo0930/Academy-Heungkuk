@@ -107,7 +107,7 @@
   padding: 16px 20px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   transition: box-shadow 0.15s;
 }
 .card:hover {
@@ -249,7 +249,7 @@
 .filterCard {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   margin-bottom: 16px;
   overflow: hidden;
 }

@@ -116,7 +116,7 @@
   position: relative;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 8px;
   background: var(--surface);
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
 }
@@ -174,7 +174,7 @@
   gap: 24px;
   padding: 18px 22px;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 8px;
   background:
     linear-gradient(135deg, rgba(37, 99, 235, 0.06), transparent 50%),
     var(--surface);
@@ -233,7 +233,7 @@
   overflow-x: auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 8px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
 }
 

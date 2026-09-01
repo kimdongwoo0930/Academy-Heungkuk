@@ -9,7 +9,6 @@ export default function ThemeToggle() {
 
   return (
     <div className={styles.wrap}>
-      <span className={styles.beta}>Beta</span>
       <button
         type="button"
         className={styles.button}
