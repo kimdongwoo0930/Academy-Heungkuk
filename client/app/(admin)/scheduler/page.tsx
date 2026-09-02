@@ -89,6 +89,7 @@ interface DragSel {
   hoverRoom: string; // 현재 포인터 호실
   anchorDate: string; // 드래그 시작 dateStr
   hoverDate: string; // 현재 포인터 dateStr
+  additive: boolean; // ⌘/Ctrl 누른 채 드래그 → 누적 선택(비연속 강의실 가능)
 }
 
 export default function SchedulerPage() {
@@ -106,6 +107,8 @@ export default function SchedulerPage() {
     cells?: { roomId: string; dateStr: string }[]; // 강의실 드래그 사각형 선택
   } | null>(null);
   const [drag, setDrag] = useState<DragSel | null>(null);
+  // ⌘/Ctrl+드래그로 쌓은 누적 선택 (비연속 강의실, 앞/뒤 블록 넘나듦 허용). "roomId|dateStr"
+  const [multiSel, setMultiSel] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchReservations = (y: number, m: number) => {
@@ -287,14 +290,49 @@ export default function SchedulerPage() {
     : null;
   const dragging = drag !== null;
 
-  // 마우스를 어디서 떼든 드래그 종료 → 2셀 이상이면 예약 모달을 기간+호실로 연다
+  const clearMultiSel = () => {
+    setMultiSel(new Set());
+  };
+
+  // 누적 선택 → 예약 모달 (여러 호실 × 여러 날짜, 비연속 포함)
+  const commitMultiSel = () => {
+    const cells = [...multiSel].map((k) => {
+      const [roomId, dateStr] = k.split("|");
+      return { roomId, dateStr };
+    });
+    if (cells.length === 0) return;
+    const dates = [...new Set(cells.map((c) => c.dateStr))].sort();
+    setCreateDefaults({
+      date: dates[0],
+      endDate: dates[dates.length - 1],
+      roomId: cells[0].roomId,
+      cells,
+    });
+    clearMultiSel();
+  };
+
+  // 마우스를 어디서 떼든 드래그 종료
+  // - 일반 드래그: 2셀 이상이면 바로 예약 모달
+  // - ⌘/Ctrl 드래그: 모달 대신 누적 선택에 합침
   useEffect(() => {
     if (!dragging) return;
     const finish = () => {
       setDrag((d) => {
-        if (d) {
-          const cells = computeDragCells(d);
-          if (cells && cells.length >= 2) {
+        if (!d) return null;
+        const cells = computeDragCells(d);
+        if (cells && cells.length > 0) {
+          if (d.additive) {
+            const merged = new Set(multiSel);
+            if (cells.length === 1) {
+              // 클릭 한 칸 = 토글: 이미 선택돼 있으면 다시 눌러서 취소
+              const key = `${cells[0].roomId}|${cells[0].dateStr}`;
+              if (merged.has(key)) merged.delete(key);
+              else merged.add(key);
+            } else {
+              cells.forEach((c) => merged.add(`${c.roomId}|${c.dateStr}`));
+            }
+            setMultiSel(merged);
+          } else if (cells.length >= 2) {
             const dates = [...new Set(cells.map((c) => c.dateStr))].sort();
             setCreateDefaults({
               date: dates[0],
@@ -310,6 +348,16 @@ export default function SchedulerPage() {
     window.addEventListener("mouseup", finish);
     return () => window.removeEventListener("mouseup", finish);
   }, [dragging]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 누적 선택 중 Esc → 선택 해제
+  useEffect(() => {
+    if (multiSel.size === 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") clearMultiSel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [multiSel.size]);
 
   const getRoomCount = (dateStr: string, type: string) => {
     let count = 0;
@@ -336,6 +384,9 @@ export default function SchedulerPage() {
           >
             🖨 주차별 인쇄
           </button>
+          <span className={styles.dragHint}>
+            빈칸 드래그로 예약 · ⌘/Ctrl+드래그로 여러 강의실
+          </span>
         </div>
         <div className={styles.monthNavigatorCard}>
           <MonthNavigator
@@ -459,11 +510,11 @@ export default function SchedulerPage() {
                                 {room.cap != null ? `${room.cap} 인` : ""}
                               </td>
                               {cells.map(({ cal, res, span }) => {
+                                const cellKey = `${room.id}|${cal.dateStr}`;
                                 const inDrag =
-                                  drag?.half === hi &&
-                                  !!dragCellSet?.has(
-                                    `${room.id}|${cal.dateStr}`,
-                                  );
+                                  (drag?.half === hi &&
+                                    !!dragCellSet?.has(cellKey)) ||
+                                  multiSel.has(cellKey);
                                 return (
                                 <td
                                   key={cal.dateStr}
@@ -475,12 +526,18 @@ export default function SchedulerPage() {
                                       : (e) => {
                                           if (e.button !== 0) return;
                                           e.preventDefault(); // 텍스트 선택 방지
+                                          const additive =
+                                            e.metaKey ||
+                                            e.ctrlKey ||
+                                            multiSel.size > 0;
+                                          // 누적 선택은 앞/뒤 2주 블록을 넘나들어도 됨
                                           setDrag({
                                             half: hi,
                                             anchorRoom: room.id,
                                             hoverRoom: room.id,
                                             anchorDate: cal.dateStr,
                                             hoverDate: cal.dateStr,
+                                            additive,
                                           });
                                         }
                                   }
@@ -711,6 +768,21 @@ export default function SchedulerPage() {
             </div>
           );
         })
+      )}
+
+      {multiSel.size > 0 && (
+        <div className={styles.multiSelBar}>
+          <span className={styles.multiSelCount}>{multiSel.size}칸 선택</span>
+          <span className={styles.multiSelHint}>
+            ⌘/Ctrl+드래그로 추가 · 선택된 칸 다시 클릭하면 해제 · Esc 전체 취소
+          </span>
+          <button className={styles.multiSelCommit} onClick={commitMultiSel}>
+            예약 생성
+          </button>
+          <button className={styles.multiSelCancel} onClick={clearMultiSel}>
+            취소
+          </button>
+        </div>
       )}
 
       {editTarget && (
