@@ -2,6 +2,7 @@
 
 import ReservationModal from '@/components/reservation/ReservationModal';
 import SurveyModal from '@/components/reservation/SurveyModal';
+import RefreshStatus from '@/components/ui/RefreshStatus';
 import { useReservationSearch } from '@/hooks/useReservationSearch';
 import {
   createReservation,
@@ -44,7 +45,7 @@ export default function ReservationPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const { reservations, totalElements, totalPages, loading } = useReservationSearch({
+  const { reservations, totalElements, totalPages, loading, lastUpdated, refetchNow } = useReservationSearch({
     keyword: debouncedSearch,
     status: status === '전체' ? undefined : status,
     sort: `${sortBy},${sortDir}`,
@@ -164,6 +165,7 @@ export default function ReservationPage() {
 
       <div className={styles.toolbar}>
         <span className={styles.countLabel}>전체 {totalElements}건</span>
+        <RefreshStatus lastUpdated={lastUpdated} onRefresh={refetchNow} />
       </div>
 
       <div className={styles.tableWrap}>

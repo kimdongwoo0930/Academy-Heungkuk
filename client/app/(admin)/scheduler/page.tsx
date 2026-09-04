@@ -3,6 +3,8 @@
 import ReservationModal from "@/components/reservation/ReservationModal";
 import ReservationTooltip from "@/components/scheduler/ReservationTooltip";
 import MonthNavigator from "@/components/ui/MonthNavigator";
+import RefreshStatus from "@/components/ui/RefreshStatus";
+import { usePolling } from "@/hooks/usePolling";
 import {
   createReservation,
   getReservationsByRange,
@@ -111,22 +113,34 @@ export default function SchedulerPage() {
   const [multiSel, setMultiSel] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchReservations = (y: number, m: number) => {
+  // silent: true면 다른 사용자의 변경을 조용히 반영(폴링용) — 로딩 오버레이/알럿 없이
+  const fetchReservations = (y: number, m: number, opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
     // 전달 1일 ~ 다음달 말일 (trailing 포함 3개월 커버)
     const from = new Date(y, m - 1, 1);
     const to = new Date(y, m + 2, 0); // 다음달 말일
     const fmt = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    setIsLoading(true);
-    getReservationsByRange(fmt(from), fmt(to))
+    if (!silent) setIsLoading(true);
+    return getReservationsByRange(fmt(from), fmt(to))
       .then(setReservations)
-      .catch(() => alert("예약 데이터를 불러오는데 실패했습니다."))
-      .finally(() => setIsLoading(false));
+      .catch(() => {
+        if (!silent) alert("예약 데이터를 불러오는데 실패했습니다.");
+      })
+      .finally(() => {
+        if (!silent) setIsLoading(false);
+      });
   };
 
   useEffect(() => {
     fetchReservations(year, month);
   }, [year, month]);
+
+  // 다른 사용자의 예약 변경을 반영 — 1분마다 조용히 재조회 + 탭 복귀 시 즉시 반영
+  const { lastUpdated, refetchNow } = usePolling(
+    () => fetchReservations(year, month, { silent: true }),
+    60_000,
+  );
 
   useEffect(() => {
     getDisabledClassrooms()
@@ -387,6 +401,7 @@ export default function SchedulerPage() {
           <span className={styles.dragHint}>
             빈칸 드래그로 예약 · ⌘/Ctrl+드래그로 여러 강의실
           </span>
+          <RefreshStatus lastUpdated={lastUpdated} onRefresh={refetchNow} />
         </div>
         <div className={styles.monthNavigatorCard}>
           <MonthNavigator
