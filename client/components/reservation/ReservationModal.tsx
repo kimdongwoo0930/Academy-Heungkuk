@@ -35,7 +35,11 @@ function toDate(str: string): Date | null {
 }
 function toDateStr(d: Date | null): string {
     if (!d) return '';
-    return d.toISOString().slice(0, 10);
+    // toISOString()은 UTC 기준이라 로컬 자정 Date가 들어오면 하루 밀린다 → 로컬 기준으로 포맷
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 }
 
 const TABS = ['기본정보', '강의실', '숙박', '식수'] as const;
@@ -225,8 +229,31 @@ export default function ReservationModal({ reservation, allReservations, onClose
     };
     const [tab, setTab] = useState<Tab>('기본정보');
     const [pickerDate, setPickerDate] = useState<string | null>(null);
-    const [dateError, setDateError] = useState('');
-    const [skipWeekends, setSkipWeekends] = useState(false);
+    // 범위 선택 중간 상태(시작만 고른 시점) — 끝까지 고르기 전엔 form을 건드리지 않는다
+    const [pendingStart, setPendingStart] = useState<string | null>(null);
+    // 저장되지 않는 UI 플래그라 조회 시엔 기존 데이터로 추론한다.
+    // 주말제외로 만든 예약은 주말 날짜에 강의실/식수 "행 자체가 없고",
+    // 평범한 예약은 주말에도 빈 행이 들어있다 → 그 차이로 판단.
+    const [skipWeekends, setSkipWeekends] = useState<boolean>(() => {
+        if (!isEdit || !reservation.startDate || !reservation.endDate) return false;
+        const cur = new Date(String(reservation.startDate));
+        const endD = new Date(String(reservation.endDate));
+        const weekend: string[] = [];
+        const weekday: string[] = [];
+        while (cur <= endD) {
+            const d = cur.toISOString().slice(0, 10);
+            (cur.getDay() === 0 || cur.getDay() === 6 ? weekend : weekday).push(d);
+            cur.setDate(cur.getDate() + 1);
+        }
+        if (weekend.length === 0) return false; // 주말이 아예 없으면 판단 불가
+        const rowDates = new Set([
+            ...(reservation.classrooms ?? []).map((c) => String(c.reservedDate)),
+            ...(reservation.meals ?? []).map((m) => String(m.reservedDate)),
+        ]);
+        const weekdayHasRows = weekday.some((d) => rowDates.has(d));
+        const weekendHasRows = weekend.some((d) => rowDates.has(d));
+        return weekdayHasRows && !weekendHasRows;
+    });
     const [bulkClassrooms, setBulkClassrooms] = useState<string[]>(['']);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
     const [bulkMeal, setBulkMeal] = useState({
@@ -415,6 +442,12 @@ export default function ReservationModal({ reservation, allReservations, onClose
         return dates;
     };
 
+    // "2박 3일" 표기 — 이동 후에도 기간이 유지됐는지 바로 확인할 수 있게
+    const nightsAndDays = (start: string, end: string) => {
+        const days = buildDateRange(start, end).length;
+        return `${days - 1}박 ${days}일`;
+    };
+
     const isWeekday = (d: string) => {
         const day = new Date(d).getDay();
         return day !== 0 && day !== 6;
@@ -463,90 +496,195 @@ export default function ReservationModal({ reservation, allReservations, onClose
         });
     };
 
-    // --- 날짜 입력 핸들러 (유효성 검사 + 자동 생성) ---
-    const handleDateChange = (key: 'startDate' | 'endDate', value: string) => {
-        const start = key === 'startDate' ? value : form.startDate;
-        const end = key === 'endDate' ? value : form.endDate;
+    // --- 기간(범위) 변경 ---
+    // 핵심: "옛 범위의 i번째 날 → 새 범위의 i번째 날" 로 매핑한다.
+    // 길이가 같으면 통째 이동(배정이 그대로 따라감), 길어지면 뒤에 빈 날이 붙고, 짧아지면 뒤쪽이 잘린다.
+    const emptyMeal = (d: string): MealReservation => ({
+        reservedDate: d,
+        breakfast: 0,
+        lunch: 0,
+        dinner: 0,
+        specialBreakfast: false,
+        specialLunch: false,
+        specialDinner: false,
+    });
 
-        if (start && end && end < start) {
-            setDateError('퇴실일은 입실일보다 빠를 수 없습니다.');
-            setField(key, value);
-            return;
-        }
-        setDateError('');
+    const applyRange = (newStart: string, newEnd: string) => {
+        const newAll = buildDateRange(newStart, newEnd);
+        const newDates = skipWeekends ? newAll.filter(isWeekday) : newAll;
+        const newDatesSet = new Set(newDates);
+        const newRoomAll = newAll.slice(0, -1); // 숙박은 박 단위(퇴실일 제외)
+        const newRoomDates = skipWeekends ? newRoomAll.filter(isWeekday) : newRoomAll;
+        const newRoomSet = new Set(newRoomDates);
 
-        if (start && end && end >= start) {
-            const allDates = buildDateRange(start, end);
-            const dates = skipWeekends ? allDates.filter(isWeekday) : allDates;
-            const datesSet = new Set(dates);
-            const filled = bulkClassrooms.filter((c) => c !== '');
-
-            // 기존 데이터 중 새 날짜 범위에 속하는 것 유지, 새 날짜만 빈 값 추가
-            const existingClassrooms = (form.classrooms ?? []).filter((c) => datesSet.has(c.reservedDate));
-            const existingClassroomDates = new Set(existingClassrooms.map((c) => c.reservedDate));
-            const newClassrooms: ClassroomReservation[] = dates.flatMap((d) =>
-                existingClassroomDates.has(d)
+        const filled = bulkClassrooms.filter((c) => c !== '');
+        // 배정이 없는 날짜에 채울 빈 행(일괄 강의실이 지정돼 있으면 그걸로)
+        const blanksFor = (taken: Set<string>): ClassroomReservation[] =>
+            newDates.flatMap((d) =>
+                taken.has(d)
                     ? []
                     : filled.length > 0
                       ? filled.map((c) => ({ classroomName: c, reservedDate: d }))
                       : [{ classroomName: '', reservedDate: d }],
             );
-            const classrooms = [...existingClassrooms, ...newClassrooms].sort((a, b) =>
-                a.reservedDate < b.reservedDate ? -1 : 1,
-            );
 
-            const existingMeals = (form.meals ?? []).filter((m) => datesSet.has(m.reservedDate));
-            const existingMealDates = new Set(existingMeals.map((m) => m.reservedDate));
-            const newMeals: MealReservation[] = dates
-                .filter((d) => !existingMealDates.has(d))
-                .map((d) => ({
-                    reservedDate: d,
-                    breakfast: 0,
-                    lunch: 0,
-                    dinner: 0,
-                    specialBreakfast: false,
-                    specialLunch: false,
-                    specialDinner: false,
-                }));
-            const meals = [...existingMeals, ...newMeals].sort((a, b) => (a.reservedDate < b.reservedDate ? -1 : 1));
-
-            const roomRange = skipWeekends ? allDates.slice(0, -1).filter(isWeekday) : allDates.slice(0, -1);
-            const roomRangeSet = new Set(roomRange);
-            const rooms = (form.rooms ?? []).filter((r) => roomRangeSet.has(String(r.reservedDate)));
-
-            setRoomDates(roomRange);
+        const commit = (
+            classrooms: ClassroomReservation[],
+            meals: MealReservation[],
+            rooms: RoomReservation[],
+        ) => {
+            setRoomDates(newRoomDates);
             setForm((prev) => ({
                 ...prev,
-                [key]: value,
+                startDate: newStart,
+                endDate: newEnd,
                 classrooms,
                 meals,
                 rooms,
             }));
-        } else {
-            setField(key, value);
+        };
+
+        // 신규 입력(기존 기간이 없음) — 빈 값으로 생성
+        if (!form.startDate || !form.endDate) {
+            commit(blanksFor(new Set()), newDates.map(emptyMeal), []);
+            return;
         }
+
+        const oldAll = buildDateRange(form.startDate, form.endDate);
+        const moveMap = new Map<string, string>();
+        oldAll.forEach((od, i) => {
+            if (i < newAll.length) moveMap.set(od, newAll[i]);
+        });
+        // 이동 후에도 새 범위에 남아있는 날짜만 유효(주말 제외가 켜져 있으면 주말에 떨어진 건 빠짐)
+        const movedInto = (d: string, set: Set<string>) => {
+            const nd = moveMap.get(d);
+            return nd && set.has(nd) ? nd : null;
+        };
+
+        const movedClassrooms = (form.classrooms ?? []).flatMap((c) => {
+            const nd = movedInto(c.reservedDate, newDatesSet);
+            return nd ? [{ ...c, reservedDate: nd }] : [];
+        });
+        const classrooms = [
+            ...movedClassrooms,
+            ...blanksFor(new Set(movedClassrooms.map((c) => c.reservedDate))),
+        ].sort((a, b) => (a.reservedDate < b.reservedDate ? -1 : 1));
+
+        const movedMeals = (form.meals ?? []).flatMap((m) => {
+            const nd = movedInto(m.reservedDate, newDatesSet);
+            return nd ? [{ ...m, reservedDate: nd }] : [];
+        });
+        const movedMealDates = new Set(movedMeals.map((m) => m.reservedDate));
+        const meals = [
+            ...movedMeals,
+            ...newDates.filter((d) => !movedMealDates.has(d)).map(emptyMeal),
+        ].sort((a, b) => (a.reservedDate < b.reservedDate ? -1 : 1));
+
+        const rooms = (form.rooms ?? []).flatMap((r) => {
+            const nd = movedInto(String(r.reservedDate), newRoomSet);
+            return nd ? [{ ...r, reservedDate: nd }] : [];
+        });
+
+        // 기간이 줄어서 "내용이 들어있는" 날이 잘리면 확인부터
+        const lostClassrooms = (form.classrooms ?? []).filter(
+            (c) => c.classroomName && !movedInto(c.reservedDate, newDatesSet),
+        ).length;
+        const lostMeals = (form.meals ?? []).filter(
+            (m) => (m.breakfast || m.lunch || m.dinner) && !movedInto(m.reservedDate, newDatesSet),
+        ).length;
+        const lostRooms = (form.rooms ?? []).filter(
+            (r) => !movedInto(String(r.reservedDate), newRoomSet),
+        ).length;
+
+        if (lostClassrooms + lostMeals + lostRooms > 0) {
+            const parts: string[] = [];
+            if (lostClassrooms) parts.push(`강의실 ${lostClassrooms}건`);
+            if (lostMeals) parts.push(`식수 ${lostMeals}일`);
+            if (lostRooms) parts.push(`숙박 ${lostRooms}건`);
+            showConfirm(`기간이 줄어 ${parts.join(', ')}이(가) 삭제됩니다. 계속할까요?`, () =>
+                commit(classrooms, meals, rooms),
+            );
+            return;
+        }
+
+        commit(classrooms, meals, rooms);
     };
 
+    // 범위 선택: 시작만 고른 중간 상태에선 form을 건드리지 않고, 끝까지 고르면 한 번에 적용
+    const handleRangeChange = (range: [Date | null, Date | null]) => {
+        const [s, e] = range;
+        const start = toDateStr(s);
+        const end = toDateStr(e);
+        if (start && !end) {
+            setPendingStart(start);
+            return;
+        }
+        setPendingStart(null);
+        if (start && end) applyRange(start, end);
+    };
+
+    // 주말 제외 토글 — 기존 배정은 살리고 주말 날짜만 빼거나(ON) 빈 행만 채운다(OFF)
     const handleSkipWeekendsChange = (checked: boolean) => {
-        setSkipWeekends(checked);
-        if (!form.startDate || !form.endDate) return;
+        if (!form.startDate || !form.endDate) {
+            setSkipWeekends(checked);
+            return;
+        }
         const allDates = buildDateRange(form.startDate, form.endDate);
         const dates = checked ? allDates.filter(isWeekday) : allDates;
-        const filledSkip = bulkClassrooms.filter((c) => c !== '');
-        const classrooms: ClassroomReservation[] = dates.flatMap((d) =>
-            filledSkip.length > 0
-                ? filledSkip.map((c) => ({ classroomName: c, reservedDate: d }))
-                : [{ classroomName: '', reservedDate: d }],
-        );
-        const meals: MealReservation[] = dates.map((d) => ({
-            reservedDate: d,
-            breakfast: 0,
-            lunch: 0,
-            dinner: 0,
-        }));
+        const datesSet = new Set(dates);
         const roomRange = checked ? allDates.slice(0, -1).filter(isWeekday) : allDates.slice(0, -1);
-        setRoomDates(roomRange);
-        setForm((prev) => ({ ...prev, classrooms, meals, rooms: [] }));
+        const roomSet = new Set(roomRange);
+
+        const filled = bulkClassrooms.filter((c) => c !== '');
+        const keptClassrooms = (form.classrooms ?? []).filter((c) => datesSet.has(c.reservedDate));
+        const takenDates = new Set(keptClassrooms.map((c) => c.reservedDate));
+        const classrooms = [
+            ...keptClassrooms,
+            ...dates.flatMap((d) =>
+                takenDates.has(d)
+                    ? []
+                    : filled.length > 0
+                      ? filled.map((c) => ({ classroomName: c, reservedDate: d }))
+                      : [{ classroomName: '', reservedDate: d }],
+            ),
+        ].sort((a, b) => (a.reservedDate < b.reservedDate ? -1 : 1));
+
+        const keptMeals = (form.meals ?? []).filter((m) => datesSet.has(m.reservedDate));
+        const keptMealDates = new Set(keptMeals.map((m) => m.reservedDate));
+        const meals = [
+            ...keptMeals,
+            ...dates.filter((d) => !keptMealDates.has(d)).map(emptyMeal),
+        ].sort((a, b) => (a.reservedDate < b.reservedDate ? -1 : 1));
+
+        const rooms = (form.rooms ?? []).filter((r) => roomSet.has(String(r.reservedDate)));
+
+        const commit = () => {
+            setSkipWeekends(checked);
+            setRoomDates(roomRange);
+            setForm((prev) => ({ ...prev, classrooms, meals, rooms }));
+        };
+
+        // 주말 제외를 켜서 내용이 들어있는 주말 항목이 빠지면 확인부터
+        const lostClassrooms = (form.classrooms ?? []).filter(
+            (c) => c.classroomName && !datesSet.has(c.reservedDate),
+        ).length;
+        const lostMeals = (form.meals ?? []).filter(
+            (m) => (m.breakfast || m.lunch || m.dinner) && !datesSet.has(m.reservedDate),
+        ).length;
+        const lostRooms = (form.rooms ?? []).filter(
+            (r) => !roomSet.has(String(r.reservedDate)),
+        ).length;
+
+        if (lostClassrooms + lostMeals + lostRooms > 0) {
+            const parts: string[] = [];
+            if (lostClassrooms) parts.push(`강의실 ${lostClassrooms}건`);
+            if (lostMeals) parts.push(`식수 ${lostMeals}일`);
+            if (lostRooms) parts.push(`숙박 ${lostRooms}건`);
+            showConfirm(`주말 항목 ${parts.join(', ')}이(가) 삭제됩니다. 계속할까요?`, commit);
+            return;
+        }
+
+        commit();
     };
 
     // --- 강의실 ---
@@ -716,12 +854,6 @@ export default function ReservationModal({ reservation, allReservations, onClose
             setTab('기본정보');
             return;
         }
-        if (dateError) {
-            showToast(dateError);
-            setTab('기본정보');
-            return;
-        }
-
         // 강의실 중복 체크
         const conflictedClassrooms = (form.classrooms ?? []).filter(isClassroomConflict);
         if (conflictedClassrooms.length > 0) {
@@ -1145,37 +1277,29 @@ export default function ReservationModal({ reservation, allReservations, onClose
                                 <div className={`${styles.fullWidth} ${styles.dateRow}`}>
                                     <div className={styles.dateField}>
                                         <span className={styles.labelText}>
-                                            입실일 <span className={styles.req}>*</span>
+                                            입실일 ~ 퇴실일 <span className={styles.req}>*</span>
                                         </span>
                                         <DatePicker
-                                            selected={toDate(form.startDate)}
-                                            onChange={(d: Date | null) => handleDateChange('startDate', toDateStr(d))}
+                                            selectsRange
+                                            startDate={toDate(pendingStart ?? form.startDate) ?? undefined}
+                                            endDate={
+                                                pendingStart ? undefined : (toDate(form.endDate) ?? undefined)
+                                            }
+                                            onChange={handleRangeChange}
                                             locale={ko}
                                             dateFormat="yyyy-MM-dd (eee)"
                                             className={styles.input}
-                                            placeholderText="날짜 선택"
+                                            placeholderText="입실일과 퇴실일을 차례로 선택"
                                             popperProps={{ strategy: 'fixed' }}
                                             popperPlacement="bottom-start"
                                         />
                                     </div>
-                                    <div className={styles.dateField}>
-                                        <span className={styles.labelText}>
-                                            퇴실일 <span className={styles.req}>*</span>
+                                    {form.startDate && form.endDate && (
+                                        <span className={styles.durationBadge}>
+                                            {nightsAndDays(form.startDate, form.endDate)}
                                         </span>
-                                        <DatePicker
-                                            selected={toDate(form.endDate)}
-                                            onChange={(d: Date | null) => handleDateChange('endDate', toDateStr(d))}
-                                            minDate={toDate(form.startDate) ?? undefined}
-                                            locale={ko}
-                                            dateFormat="yyyy-MM-dd (eee)"
-                                            className={`${styles.input} ${dateError ? styles.inputError : ''}`}
-                                            placeholderText="날짜 선택"
-                                            popperProps={{ strategy: 'fixed' }}
-                                            popperPlacement="bottom-start"
-                                        />
-                                    </div>
+                                    )}
                                 </div>
-                                {dateError && <p className={`${styles.dateError} ${styles.fullWidth}`}>{dateError}</p>}
                                 <div className={`${styles.fullWidth} ${styles.memoColorRow}`}>
                                     <label className={`${styles.label} ${styles.memoFlex}`}>
                                         메모

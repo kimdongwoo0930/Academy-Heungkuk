@@ -20,6 +20,10 @@ services:
       retries: 5
 
   backend:
+    # 평소엔 CI(GitHub Actions)가 GHCR에 올린 이미지를 pull 해서 쓴다.
+    # BACKEND_IMAGE 를 .env 에서 특정 태그로 지정하면 그 버전으로 롤백된다.
+    image: ${BACKEND_IMAGE:-ghcr.io/kimdongwoo0930/heungkuk-backend:latest}
+    # build 는 로컬에서 직접 빌드하고 싶을 때만 쓰는 폴백 (서버 배포 경로에선 사용 안 함)
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -67,6 +71,9 @@ services:
     restart: unless-stopped
 
   client:
+    image: ${CLIENT_IMAGE:-ghcr.io/kimdongwoo0930/heungkuk-client:latest}
+    # NEXT_PUBLIC_API_URL 은 빌드 시점에 번들에 박히므로,
+    # 서버 배포 경로에선 CI 시크릿으로 주입된다(아래 args 는 로컬 빌드용).
     build:
       context: ./client
       dockerfile: Dockerfile

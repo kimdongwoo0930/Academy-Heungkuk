@@ -18,6 +18,13 @@
   backdrop-filter: blur(8px);
 }
 
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
 .pageIntro {
   min-width: 0;
 }

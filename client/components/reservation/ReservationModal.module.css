@@ -276,9 +276,24 @@
 
 .dateRow {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
     gap: 12px;
+}
+
+/* "2박 3일" — 기간이 유지됐는지 한눈에 보이도록 */
+.durationBadge {
+    padding: 0 10px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+    color: var(--text-sub);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
 .dateField {

@@ -9,6 +9,8 @@ import {
 import { printMealTable } from "@/lib/utils/printRoomTable";
 import { Reservation } from "@/types/reservation";
 import MonthNavigator from "@/components/ui/MonthNavigator";
+import RefreshStatus from "@/components/ui/RefreshStatus";
+import { usePolling } from "@/hooks/usePolling";
 import { isHoliday } from "@hyunbinseo/holidays-kr";
 import { useEffect, useState } from "react";
 import styles from "./page.module.css";
@@ -46,19 +48,35 @@ export default function RestaurantPage() {
   const [editTarget, setEditTarget] = useState<Reservation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const years = [year];
-    if (month === 0) years.push(year - 1);
-    if (month === 11) years.push(year + 1);
-    setIsLoading(true);
-    Promise.all(years.map(getReservationsByYear))
+  // silent: true면 다른 사용자의 변경을 조용히 반영(폴링용) — 로딩 오버레이/알럿 없이
+  const fetchReservations = (y: number, m: number, opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
+    const years = [y];
+    if (m === 0) years.push(y - 1);
+    if (m === 11) years.push(y + 1);
+    if (!silent) setIsLoading(true);
+    return Promise.all(years.map(getReservationsByYear))
       .then((results) => {
         const merged = [...new Map(results.flat().map((r) => [r.id, r])).values()];
         setReservations(merged);
       })
-      .catch(() => alert("예약 데이터를 불러오는데 실패했습니다."))
-      .finally(() => setIsLoading(false));
+      .catch(() => {
+        if (!silent) alert("예약 데이터를 불러오는데 실패했습니다.");
+      })
+      .finally(() => {
+        if (!silent) setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchReservations(year, month);
   }, [year, month]);
+
+  // 다른 사용자의 예약 변경을 반영 — 1분마다 조용히 재조회 + 탭 복귀 시 즉시 반영
+  const { lastUpdated, refetchNow } = usePolling(
+    () => fetchReservations(year, month, { silent: true }),
+    60_000,
+  );
 
   // ── 주 단위 그리드 생성 (월요일 시작, 7일씩) ──
   const firstDay = new Date(year, month, 1);
@@ -201,19 +219,22 @@ export default function RestaurantPage() {
           <h1 className={styles.title}>식수관리</h1>
           <p>{firstDate} ~ {lastDate} 기준 식수 예약 현황입니다.</p>
         </div>
-        <button
-          className={styles.printBtn}
-          onClick={() => printMealTable(year, month, reservations)}
-        >
-          🖨 인쇄 / PDF
-        </button>
-        <MonthNavigator
-          year={year}
-          month={month}
-          onPrev={prevMonth}
-          onNext={nextMonth}
-          onJump={(y, m) => { setYear(y); setMonth(m); }}
-        />
+        <div className={styles.headerControls}>
+          <button
+            className={styles.printBtn}
+            onClick={() => printMealTable(year, month, reservations)}
+          >
+            🖨 인쇄 / PDF
+          </button>
+          <RefreshStatus lastUpdated={lastUpdated} onRefresh={refetchNow} />
+          <MonthNavigator
+            year={year}
+            month={month}
+            onPrev={prevMonth}
+            onNext={nextMonth}
+            onJump={(y, m) => { setYear(y); setMonth(m); }}
+          />
+        </div>
       </div>
 
       {!isLoading && (

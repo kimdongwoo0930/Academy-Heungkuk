@@ -1,0 +1,35 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+.time {
+  line-height: 1;
+}
+
+.btn {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.4s ease;
+}
+
+.btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.btn:active {
+  transform: rotate(180deg);
+}
