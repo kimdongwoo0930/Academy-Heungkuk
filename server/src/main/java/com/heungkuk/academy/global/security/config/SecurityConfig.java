@@ -35,6 +35,13 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
 
+    // springdoc 활성화 여부 (로컬: 기본값 true / docker: false) — Swagger 경로 공개 여부도 같이 따라간다
+    @Value("${springdoc.api-docs.enabled:true}")
+    private boolean swaggerEnabled;
+
+    private static final String[] SWAGGER_PATHS = {"/swagger-ui/**", "/swagger-ui.html",
+            "/v3/api-docs/**", "/v3/api-docs", "/webjars/**"};
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -48,10 +55,13 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/v1/auth/**", "/v1/survey/**", "/swagger-ui/**",
-                                "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs",
-                                "/webjars/**",
+                .authorizeHttpRequests(auth -> {
+                    // Swagger 는 springdoc 이 켜진 환경(로컬)에서만 공개
+                    if (swaggerEnabled) {
+                        auth.requestMatchers(SWAGGER_PATHS).permitAll();
+                    }
+                    auth
+                        .requestMatchers("/v1/auth/**", "/v1/survey/**",
                                 "/actuator/health", "/actuator/prometheus")
                         .permitAll()
                         // Excel 다운로드/내보내기/가져오기는 ROLE_ADMIN만 가능
@@ -72,7 +82,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/v1/admin/**")
                         .hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/v1/admin/**")
-                        .hasAuthority("ROLE_ADMIN").anyRequest().authenticated())
+                        .hasAuthority("ROLE_ADMIN").anyRequest().authenticated();
+                })
                 .addFilterBefore(jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class);
 
