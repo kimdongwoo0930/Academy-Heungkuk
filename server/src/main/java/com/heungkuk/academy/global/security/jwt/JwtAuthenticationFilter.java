@@ -33,8 +33,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 1. Authorization 헤더에서 토큰 추출 ("Bearer xxx...")
         String token = resolveToken(request);
 
-        // 2. 토큰이 존재하고 유효한 경우에만 인증 처리
-        if (token != null && jwtProvider.validateToken(token)) {
+        // 2. 토큰이 존재하고 유효한 access 토큰인 경우에만 인증 처리
+        //    (refresh 토큰을 Bearer 로 보내면 인증되지 않음 → 보호된 경로는 401)
+        if (token != null && jwtProvider.isAccessToken(token)) {
 
             // 3. 토큰에서 userId, role 꺼내기
             String userId = jwtProvider.getUserId(token);

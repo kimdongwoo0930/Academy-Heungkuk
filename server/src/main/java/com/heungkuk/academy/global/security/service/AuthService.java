@@ -74,9 +74,8 @@ public class AuthService {
      * @return accessToken
      */
     public LoginResponse reissue(String refreshToken) {
-        // 1. refreshToken 자체가 유효한지 검증 (만료됐거나 위조된 토큰 차단)
-        // → jwtProvider.validateToken(refreshToken) 이 false면 예외
-        if (!jwtProvider.validateToken(refreshToken)) {
+        // 1. refreshToken 자체가 유효한지 검증 (만료·위조 차단 + access 토큰을 넣은 경우도 차단)
+        if (!jwtProvider.isRefreshToken(refreshToken)) {
             throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
         // 2. 유효하면 토큰 안에서 userId 꺼내기
