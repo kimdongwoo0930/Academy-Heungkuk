@@ -2,18 +2,19 @@ package com.heungkuk.academy.global.security.controller;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.heungkuk.academy.domain.account.dto.request.LoginRequest;
-import com.heungkuk.academy.domain.account.dto.request.ReissueRequest;
 import com.heungkuk.academy.domain.account.dto.response.LoginResponse;
 import com.heungkuk.academy.global.response.CommonResponse;
 import com.heungkuk.academy.global.security.dto.AuthTokens;
 import com.heungkuk.academy.global.security.jwt.RefreshTokenCookieProvider;
 import com.heungkuk.academy.global.security.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,15 +43,19 @@ public class AuthController {
                 .body(CommonResponse.success(LoginResponse.of(tokens.accessToken())));
     }
 
-    @Operation(summary = "토큰 재발급", description = "Refresh Token으로 새로운 Access Token을 발급합니다.")
+    @Operation(summary = "토큰 재발급",
+            description = "refreshToken 쿠키로 새 accessToken(바디)과 새 refreshToken(쿠키)을 발급합니다. (rotation)")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "토큰 재발급 성공"),
-            @ApiResponse(responseCode = "401", description = "리프레시 토큰이 유효하지 않거나 만료됨"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 계정")})
+            @ApiResponse(responseCode = "401", description = "리프레시 토큰이 없거나 유효하지 않음")})
     @PostMapping("/reissue")
     public ResponseEntity<CommonResponse<LoginResponse>> reissue(
-            @RequestBody ReissueRequest request) {
-        return ResponseEntity
-                .ok(CommonResponse.success(authService.reissue(request.getRefreshToken())));
+            @Parameter(hidden = true)
+            @CookieValue(name = RefreshTokenCookieProvider.COOKIE_NAME, required = false) String refreshToken) {
+        AuthTokens tokens = authService.reissue(refreshToken);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieProvider.create(tokens.refreshToken()).toString())
+                .body(CommonResponse.success(LoginResponse.of(tokens.accessToken())));
     }
 
 

@@ -10,8 +10,8 @@
 
 | Method | Endpoint        | 설명                |
 | ------ | --------------- | ------------------- |
-| POST   | `/auth/login`   | 로그인 (JWT 발급)   |
-| POST   | `/auth/reissue` | Access Token 재발급 |
+| POST   | `/auth/login`   | 로그인 — access 는 바디, refresh 는 HttpOnly 쿠키(Path=/v1/auth) |
+| POST   | `/auth/reissue` | refresh 쿠키로 access + refresh 재발급 (rotation) |
 
 ### 계정 관리 `🔐 JWT 필요`
 

@@ -10,6 +10,7 @@ import com.heungkuk.academy.domain.account.dto.response.AccountResponse;
 import com.heungkuk.academy.domain.account.dto.response.SignupResponse;
 import com.heungkuk.academy.domain.account.entity.Account;
 import com.heungkuk.academy.domain.account.repository.AccountRepository;
+import com.heungkuk.academy.domain.account.repository.RefreshTokenRepository;
 import com.heungkuk.academy.global.exception.BusinessException;
 import com.heungkuk.academy.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     // 관리자가 계정 생성 (state=true, 즉시 활성화)
@@ -64,6 +66,8 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
         log.info("계정 삭제: userId={}, username={}", account.getUserId(), account.getUsername());
+        // 세션(refresh_token)이 계정을 FK 로 참조하므로 먼저 삭제 → 모든 기기 로그아웃
+        refreshTokenRepository.deleteAllByAccount(account);
         accountRepository.delete(account);
     }
 

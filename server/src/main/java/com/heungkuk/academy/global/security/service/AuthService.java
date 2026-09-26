@@ -1,14 +1,16 @@
 package com.heungkuk.academy.global.security.service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.heungkuk.academy.domain.account.dto.request.LoginRequest;
-import com.heungkuk.academy.domain.account.dto.response.LoginResponse;
 import com.heungkuk.academy.domain.account.entity.Account;
+import com.heungkuk.academy.domain.account.entity.RefreshToken;
 import com.heungkuk.academy.domain.account.repository.AccountRepository;
+import com.heungkuk.academy.domain.account.repository.RefreshTokenRepository;
 import com.heungkuk.academy.global.exception.BusinessException;
 import com.heungkuk.academy.global.exception.ErrorCode;
 import com.heungkuk.academy.global.security.dto.AuthTokens;
@@ -24,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthService {
 
     private final AccountRepository accountRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
@@ -58,51 +61,66 @@ public class AuthService {
             log.warn("로그인 실패 - 비밀번호 불일치: userId={}", request.getUserId());
             throw new BusinessException(ErrorCode.LOGIN_FAILED);
         }
-        // 3. accessToken, refreshToken 생성
+        // 3. 이 로그인(기기)의 세션 ID 생성 후 accessToken, refreshToken 생성
+        String sessionId = UUID.randomUUID().toString();
         String accessToken =
                 jwtProvider.generateAccessToken(account.getUserId(), account.getRole());
-        String refreshToken = jwtProvider.generateRefreshToken(account.getUserId());
-        // 5. refreshToken 은 원문 대신 SHA-256 해시로 DB 저장
-        account.updateRefreshTokenHash(TokenHashUtil.sha256(refreshToken));
-        log.info("로그인 성공: userId={}, role={}", account.getUserId(), account.getRole());
+        String refreshToken = jwtProvider.generateRefreshToken(account.getUserId(), sessionId);
+        // 4. 이 계정의 만료된 세션 정리 (로그아웃 없이 버려진 기기 세션이 쌓이지 않게)
+        refreshTokenRepository.deleteExpiredByAccount(account, LocalDateTime.now());
+        // 5. 세션 1행 추가 — refreshToken 은 원문 대신 SHA-256 해시로 저장
+        refreshTokenRepository.save(RefreshToken.of(account, sessionId,
+                TokenHashUtil.sha256(refreshToken), jwtProvider.getExpiration(refreshToken)));
+        log.info("로그인 성공: userId={}, role={}, sessionId={}", account.getUserId(),
+                account.getRole(), sessionId);
         // 6. 발급한 토큰 반환
         return new AuthTokens(accessToken, refreshToken);
     }
 
     /**
-     * 토큰 재발급 함수
+     * 토큰 재발급 (rotation)
+     * 쿠키의 refreshToken 으로 새 accessToken + 새 refreshToken 을 발급하고, 세션의 해시를 새 값으로 교체한다.
+     * 실패 사유는 모두 INVALID_REFRESH_TOKEN(401) 로 통일 (어떤 이유로 실패했는지 외부에 드러내지 않음)
      *
-     * @param refreshToken
-     * @return accessToken
+     * @param refreshToken 쿠키에서 읽은 refresh 토큰 (없으면 null)
+     * @return AuthTokens (새 access 는 바디, 새 refresh 는 쿠키로 컨트롤러에서 내보냄)
      */
-    public LoginResponse reissue(String refreshToken) {
-        // 1. refreshToken 자체가 유효한지 검증 (만료·위조 차단 + access 토큰을 넣은 경우도 차단)
+    public AuthTokens reissue(String refreshToken) {
+        // 1. refresh 토큰 자체 검증 — 쿠키 없음 / 만료 / 위조 / access 토큰을 넣은 경우 차단
         if (!jwtProvider.isRefreshToken(refreshToken)) {
             throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
-        // 2. 유효하면 토큰 안에서 userId 꺼내기
-        // → jwtProvider.getUserId(refreshToken)
         String userId = jwtProvider.getUserId(refreshToken);
+        String sessionId = jwtProvider.getSessionId(refreshToken);
 
-        // 3. userId로 DB에서 Account 조회 → 없으면 예외
-        // → accountRepository.findByUserId(userId)
-        Account account = accountRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
-
-        // 4. 요청으로 온 refreshToken 의 해시를 DB 에 저장된 해시와 비교
-        // (DB 값이 없으면 — 로그인 이력 없음 / 로그아웃 / 강제 로그아웃 — 불일치로 처리, NPE 없음)
-        if (!TokenHashUtil.matches(refreshToken, account.getRefreshTokenHash())) {
+        // 2. 세션 조회 — 없으면 로그아웃 / 비밀번호·권한 변경 / 계정 삭제 / 만료 정리된 세션
+        RefreshToken session = (sessionId == null) ? null
+                : refreshTokenRepository.findBySessionId(sessionId).orElse(null);
+        if (session == null) {
             throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        // 5. 새 accessToken 생성 (role도 필요하니까 account.getRole() 사용)
-        // → jwtProvider.generateAccessToken(userId, role)
-        String accessToken =
-                jwtProvider.generateAccessToken(account.getUserId(), account.getRole());
+        // 3. 세션의 계정과 토큰의 userId 가 같은지 확인
+        Account account = session.getAccount();
+        if (!account.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
 
-        // 6. 새 accessToken 만 반환 (refreshToken 은 기존 것 유지 — 쿠키 기반 rotation 은 12번에서)
-        return LoginResponse.of(accessToken);
+        // 4. 현재 유효한 토큰인지 해시 비교 — 이미 교체된(rotation 전) 옛 토큰이면 불일치
+        //    탈취 의심 시 강제 로그아웃은 하지 않고 거부 + 로그만 남긴다
+        if (!TokenHashUtil.matches(refreshToken, session.getTokenHash())) {
+            log.warn("재발급 거부 - 이미 교체된 refresh 토큰 사용: userId={}, sessionId={}", userId,
+                    sessionId);
+            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
+        // 5. rotation — 같은 세션 ID 로 새 토큰 발급, 세션의 해시·만료 시각 교체
+        String newAccessToken =
+                jwtProvider.generateAccessToken(account.getUserId(), account.getRole());
+        String newRefreshToken = jwtProvider.generateRefreshToken(account.getUserId(), sessionId);
+        session.rotate(TokenHashUtil.sha256(newRefreshToken),
+                jwtProvider.getExpiration(newRefreshToken));
+
+        return new AuthTokens(newAccessToken, newRefreshToken);
     }
 }
-
-
