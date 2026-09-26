@@ -3,21 +3,7 @@ export interface LoginRequest {
   password: string;
 }
 
+// refreshToken 은 바디가 아니라 HttpOnly 쿠키로 내려온다
 export interface LoginResponse {
   accessToken: string;
-  refreshToken: string;
-}
-
-export interface SignupRequest {
-  userId: string;
-  password: string;
-  username: string;
-}
-
-export interface SignupResponse {
-  id: number;
-  userId: string;
-  username: string;
-  role: string;
-  state: boolean;
 }

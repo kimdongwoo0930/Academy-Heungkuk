@@ -8,6 +8,7 @@ import {
   updateAccountPassword,
   updateAccountRole,
 } from "@/lib/api/account";
+import { isAxiosError } from "axios";
 import {
   exportReservations,
   importReservations,
@@ -16,7 +17,7 @@ import {
 import { getSettings, saveSettings, getDisabledClassrooms, saveDisabledClassrooms, getDisabledRooms, saveDisabledRooms } from "@/lib/api/settings";
 import { CLASSROOM_CATEGORIES, CLASSROOM_LIST } from "@/lib/constants/classrooms";
 import { CellDef, FLOOR_GRID_COLS, FLOOR_GRID_ROWS, FLOOR_LAYOUT_1F, FLOOR_LAYOUT_2F, ROOM_INFO, RoomType } from "@/lib/constants/rooms";
-import { isAdmin, parseJwtPayload } from "@/lib/utils/auth";
+import { getCurrentUserId, isAdmin } from "@/lib/utils/auth";
 import {
   AppSettings,
   getDefaultAppSettings,
@@ -27,18 +28,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "./page.module.css";
-
-function getCurrentUserId(): string | null {
-  if (typeof window === "undefined") return null;
-  const token = localStorage.getItem("accessToken");
-  if (!token) return null;
-  try {
-    const payload = parseJwtPayload(token);
-    return (payload.sub as string) ?? null;
-  } catch {
-    return null;
-  }
-}
 
 interface CreateForm {
   userId: string;
@@ -268,8 +257,9 @@ export default function SettingsPage() {
       setAccounts((prev) =>
         prev.map((a) => (a.id === acc.id ? { ...a, role: newRole } : a)),
       );
-    } catch {
-      alert("권한 변경에 실패했습니다.");
+    } catch (err) {
+      // 서버 메시지(예: 마지막 관리자 강등 불가)가 있으면 그대로 보여준다
+      alert((isAxiosError(err) && err.response?.data?.message) || "권한 변경에 실패했습니다.");
     }
   };
 
@@ -279,8 +269,8 @@ export default function SettingsPage() {
     try {
       await deleteAccount(id);
       setAccounts((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      alert("계정 삭제에 실패했습니다.");
+    } catch (err) {
+      alert((isAxiosError(err) && err.response?.data?.message) || "계정 삭제에 실패했습니다.");
     }
   };
 

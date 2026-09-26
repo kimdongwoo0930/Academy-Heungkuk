@@ -10,8 +10,9 @@
 
 | Method | Endpoint        | 설명                |
 | ------ | --------------- | ------------------- |
-| POST   | `/auth/login`   | 로그인 (JWT 발급)   |
-| POST   | `/auth/reissue` | Access Token 재발급 |
+| POST   | `/auth/login`   | 로그인 — access 는 바디, refresh 는 HttpOnly 쿠키(Path=/v1/auth) |
+| POST   | `/auth/reissue` | refresh 쿠키로 access + refresh 재발급 (rotation) |
+| POST   | `/auth/logout`  | 이 기기 세션 삭제 + refresh 쿠키 만료 (항상 200) |
 
 ### 계정 관리 `🔐 JWT 필요`
 
@@ -72,17 +73,6 @@
 | ------ | ----------------- | ----------------------- |
 | GET    | `/admin/settings` | 설정 전체 조회 (KV Map) |
 | PUT    | `/admin/settings` | 설정 전체 저장          |
-
-### 로그 조회 `🔐 JWT 필요`
-
-> SSE 실시간 스트림은 Grafana + Loki로 이전되어 제거됨
-> 초기 로그 로드 엔드포인트만 유지 (서버 내부 참조용)
-
-| Method | Endpoint                   | 설명                                    |
-| ------ | -------------------------- | --------------------------------------- |
-| GET    | `/admin/logs?file=&lines=` | 로그 파일 끝에서 N줄 반환               |
-
-**file 파라미터 허용값:** `app` · `auth` · `reservation` · `access` · `error`
 
 ### 모니터링 (내부 전용, 인증 불필요)
 

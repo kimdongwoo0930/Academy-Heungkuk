@@ -17,7 +17,7 @@ public interface AccountService {
     /** 계정 삭제 */
     void deleteAccount(Long id);
 
-    /** 계정 역할 변경 (ROLE_ADMIN ↔ ROLE_USER) */
+    /** 계정 역할 변경 (ROLE_ADMIN ↔ ROLE_USER, 그 외 값은 INVALID_ROLE / 마지막 관리자 강등 불가) */
     void updateRole(Long id, String role);
 
     /** 비밀번호 변경 (ID 기준) */
