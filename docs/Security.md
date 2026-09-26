@@ -260,66 +260,6 @@ API 401 ─▶ axios 응답 인터셉터 ─▶ refreshAccessToken() ─▶ POST
 
 모든 에러는 `{"success": false, "message": "...", "data": null}` 형식.
 
----
-
-## 10. 알려진 한계 · 추후 검토
-
-| 항목 | 설명 | 필요 시 대응 |
-| --- | --- | --- |
-| access 즉시 무효화 불가 | 로그아웃·비밀번호/권한 변경 후에도 이미 발급된 access 는 최대 30분 유효 (권한도 옛 값) | access 블랙리스트(Redis) 또는 요청마다 DB 권한 확인 |
-| refresh 재사용 시 강제 로그아웃 없음 | 공격자가 훔친 refresh 를 **먼저** 쓰면 그 세션은 공격자 쪽으로 이어짐 (정상 사용자는 401 → 재로그인) | 비밀번호 변경으로 전체 세션 삭제. 필요하면 재사용 감지 시 세션 삭제 추가 |
-| 관리자 동시 강등 경합 | 관리자 2명이 동시에 서로를 강등하면 둘 다 검사를 통과할 수 있음 | DB 잠금 (`SELECT ... FOR UPDATE`) |
-| 본인 비밀번호 변경 시 현재 비밀번호 미확인 | 탈취된 access(30분)로 비밀번호를 바꿔 주인을 쫓아낼 수 있음 | 현재 비밀번호 확인 추가 |
-| 세션 목록/원격 로그아웃 UI 없음 | 기기별 세션은 있지만 화면에서 볼 수 없음 | `refresh_token` 테이블 기반으로 "로그인된 기기" 화면 추가 가능 |
-
-범위 밖으로 따로 진행 예정: nginx, actuator 노출, 모니터링
-
----
-
-## 11. 운영 배포 체크리스트 (2단계 반영 시)
-
-- [ ] 배포 **전**: `SELECT DISTINCT role FROM account;` → `ROLE_ADMIN` / `ROLE_USER` 외 값 없음 확인 (enum 전환)
-- [ ] 서버 `.env` 에서 `JWT_ACCESS_EXPIRATION`, `JWT_REFRESH_EXPIRATION` 삭제 (더 이상 사용 안 함)
-- [ ] 배포 (사용자 없는 새벽) → **기존 사용자 전원 1회 재로그인 필요** (기존 토큰에 `type`/`sid` 없음)
-- [ ] `refresh_token` 테이블 자동 생성 확인
-- [ ] 배포 **후**: `ALTER TABLE account DROP COLUMN refresh_token;` (옛 평문 refresh 컬럼 제거)
-- [ ] `https://api.academy-hk.com/v3/api-docs` → 401
-- [ ] 로그인 후 F12 쿠키에 `Secure` ✓ 확인
-
----
-
-## 12. 확인 방법
-
-### 브라우저 (F12)
-| 탭 | 확인 |
-| --- | --- |
-| Application → Local Storage | `accessToken` 없음 |
-| Application → Cookies → API 도메인 | `refreshToken`: HttpOnly ✓, Path `/v1/auth`, SameSite Strict, (운영) Secure ✓ |
-| Console | `document.cookie` 에 refreshToken 안 보임 |
-| Network (새로고침) | `reissue` 1건 → 이후 API 200 |
-| Network (access 만료 후) | `401` → `reissue` 1건 → 원래 요청 `200` |
-| Network (로그아웃) | `logout` 200, `Set-Cookie: refreshToken=; Max-Age=0` |
-
-> access 만료를 빨리 보려면 로컬 서버를 `--jwt.access-expiration=20000` (20초) 인자로 실행
-
-### curl
-```bash
-# 로그인 (쿠키를 jar 파일에 저장)
-curl -c jar -X POST localhost:8888/v1/auth/login -H 'Content-Type: application/json' -d '{"userId":"아이디","password":"비번"}'
-# 재발급 (jar 의 refreshToken 값이 바뀜)
-curl -b jar -c jar -X POST localhost:8888/v1/auth/reissue
-# 로그아웃 (jar 에서 refreshToken 삭제)
-curl -i -b jar -c jar -X POST localhost:8888/v1/auth/logout
-```
-
-### DB
-```bash
-docker exec -it mysql mysql -uroot -proot Heungkuk \
-  -e "select account_id, left(session_id,8) sid, left(token_hash,10) hash, expires_at, updated_at from refresh_token;"
-```
-
----
-
 ## 13. 관련 파일
 
 | 구분 | 파일 |
