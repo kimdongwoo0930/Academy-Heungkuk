@@ -1,21 +1,8 @@
-export function parseJwtPayload(token: string): Record<string, unknown> {
-  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  const json = decodeURIComponent(
-    atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
-  );
-  return JSON.parse(json);
-}
+import { useAuthStore } from '@/store/auth';
 
+// 아래 함수들은 메모리(zustand)의 access 토큰 기준 — admin layout 이 토큰을 준비한 뒤에 렌더링되는 화면에서 사용
 export function getCurrentUserRole(): string | null {
-  if (typeof window === 'undefined') return null;
-  const token = localStorage.getItem('accessToken');
-  if (!token) return null;
-  try {
-    const payload = parseJwtPayload(token);
-    return (payload.role as string) ?? null;
-  } catch {
-    return null;
-  }
+  return useAuthStore.getState().role;
 }
 
 export function isAdmin(): boolean {
@@ -23,13 +10,5 @@ export function isAdmin(): boolean {
 }
 
 export function getCurrentUserId(): string | null {
-  if (typeof window === 'undefined') return null;
-  const token = localStorage.getItem('accessToken');
-  if (!token) return null;
-  try {
-    const payload = parseJwtPayload(token);
-    return (payload.sub as string) ?? null;
-  } catch {
-    return null;
-  }
+  return useAuthStore.getState().userId;
 }
