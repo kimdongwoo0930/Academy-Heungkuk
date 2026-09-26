@@ -9,7 +9,7 @@
 | 항목       | 내용                        |
 | ---------- | --------------------------- |
 | 프로젝트명 | 흥국생명 연수원 관리 시스템 |
-| 버전       | 3.5.0 Release               |
+| 버전       | 4.0.0 Release               |
 | 사용 대상  | 연수원 직원                 |
 
 ---
@@ -68,7 +68,6 @@
 | 기능 명세 | 도메인별 기능 목록 및 구현 상태       | [docs/FEATURES.md](docs/FEATURES.md)         |
 | 변경 이력 | 버전별 업데이트 내역                  | [CHANGELOG.md](CHANGELOG.md)                 |
 | 모니터링  | 로그·메트릭 구성, 쿼리 예시, 대시보드 | [docs/Grafana-Loki.md](docs/Grafana-Loki.md) |
+| 보안, 인가 구조 | 서버 보안및 인가 방식 구조 설명 | [docs/Security.md](docs/Security.md) |
 
 ---
-
-_최종 수정: 2026-04-26_
