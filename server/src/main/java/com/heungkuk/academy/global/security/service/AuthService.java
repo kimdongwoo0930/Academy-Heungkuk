@@ -13,6 +13,7 @@ import com.heungkuk.academy.global.exception.BusinessException;
 import com.heungkuk.academy.global.exception.ErrorCode;
 import com.heungkuk.academy.global.security.dto.AuthTokens;
 import com.heungkuk.academy.global.security.jwt.JwtProvider;
+import com.heungkuk.academy.global.security.jwt.TokenHashUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -61,8 +62,8 @@ public class AuthService {
         String accessToken =
                 jwtProvider.generateAccessToken(account.getUserId(), account.getRole());
         String refreshToken = jwtProvider.generateRefreshToken(account.getUserId());
-        // 5. refreshToken DB 저장
-        account.updateRefreshToken(refreshToken);
+        // 5. refreshToken 은 원문 대신 SHA-256 해시로 DB 저장
+        account.updateRefreshTokenHash(TokenHashUtil.sha256(refreshToken));
         log.info("로그인 성공: userId={}, role={}", account.getUserId(), account.getRole());
         // 6. 발급한 토큰 반환
         return new AuthTokens(accessToken, refreshToken);
@@ -88,10 +89,9 @@ public class AuthService {
         Account account = accountRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND));
 
-        // 4. DB에 저장된 refreshToken과 요청으로 온 refreshToken 비교
-        // → account.getRefreshToken().equals(refreshToken) 이 false면 예외
-        // (왜? 누군가 토큰을 훔쳤을 때 관리자가 DB에서 지우면 막을 수 있음)
-        if (!account.getRefreshToken().equals(refreshToken)) {
+        // 4. 요청으로 온 refreshToken 의 해시를 DB 에 저장된 해시와 비교
+        // (DB 값이 없으면 — 로그인 이력 없음 / 로그아웃 / 강제 로그아웃 — 불일치로 처리, NPE 없음)
+        if (!TokenHashUtil.matches(refreshToken, account.getRefreshTokenHash())) {
             throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 

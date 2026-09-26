@@ -50,8 +50,10 @@ public class Account extends BaseTimeEntity {
     @Column(nullable = false)
     private Boolean state;
 
-    @Column(length = 500)
-    private String refreshToken;
+    // refresh 토큰 원문이 아닌 SHA-256 해시(64자 hex) — DB 유출 시에도 토큰으로 쓸 수 없게
+    // 컬럼명은 기존 refresh_token 유지 (이름을 바꾸면 ddl-auto=update 가 옛 컬럼을 평문째 남겨둠)
+    @Column(name = "refresh_token", length = 64)
+    private String refreshTokenHash;
 
     // created_at, updated_at → BaseTimeEntity 가 자동 처리
 
@@ -75,8 +77,13 @@ public class Account extends BaseTimeEntity {
             .build();
     }
 
-    public void updateRefreshToken(String token){
-        this.refreshToken = token;
+    public void updateRefreshTokenHash(String tokenHash){
+        this.refreshTokenHash = tokenHash;
+    }
+
+    // 로그아웃 / 비밀번호·권한 변경 시 → 이후 reissue 불가
+    public void clearRefreshTokenHash(){
+        this.refreshTokenHash = null;
     }
 
     public void updateRole(String role){
