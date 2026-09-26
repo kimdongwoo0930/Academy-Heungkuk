@@ -73,17 +73,6 @@
 | GET    | `/admin/settings` | 설정 전체 조회 (KV Map) |
 | PUT    | `/admin/settings` | 설정 전체 저장          |
 
-### 로그 조회 `🔐 JWT 필요`
-
-> SSE 실시간 스트림은 Grafana + Loki로 이전되어 제거됨
-> 초기 로그 로드 엔드포인트만 유지 (서버 내부 참조용)
-
-| Method | Endpoint                   | 설명                                    |
-| ------ | -------------------------- | --------------------------------------- |
-| GET    | `/admin/logs?file=&lines=` | 로그 파일 끝에서 N줄 반환               |
-
-**file 파라미터 허용값:** `app` · `auth` · `reservation` · `access` · `error`
-
 ### 모니터링 (내부 전용, 인증 불필요)
 
 > Prometheus가 스크랩하는 엔드포인트 — 외부 직접 호출 불필요
