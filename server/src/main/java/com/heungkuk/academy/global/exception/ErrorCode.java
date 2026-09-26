@@ -11,7 +11,8 @@ public enum ErrorCode {
     // Account
     ACCOUNT_NOT_FOUND("존재하지 않는 계정입니다.", HttpStatus.NOT_FOUND),
     DUPLICATE_USER_ID("이미 사용 중인 아이디입니다.", HttpStatus.CONFLICT),
-    INVALID_PASSWORD("비밀번호가 올바르지 않습니다.", HttpStatus.UNAUTHORIZED),
+    // 로그인 실패 — 없는 계정 / 비밀번호 불일치를 구분하지 않음 (계정 존재 여부 노출 방지)
+    LOGIN_FAILED("아이디 또는 비밀번호가 올바르지 않습니다.", HttpStatus.UNAUTHORIZED),
     ACCOUNT_PENDING("승인 대기 중인 계정입니다.", HttpStatus.FORBIDDEN),
 
     // Reservation

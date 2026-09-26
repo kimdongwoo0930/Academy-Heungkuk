@@ -1,5 +1,7 @@
 package com.heungkuk.academy.global.security.service;
 
+import java.util.UUID;
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,13 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
+    // 없는 계정 로그인 시 비교용 가짜 해시 (서버 시작 시 1회 생성)
+    private String dummyPasswordHash;
+
+    @PostConstruct
+    void initDummyPasswordHash() {
+        dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
+    }
 
 
     /**
@@ -33,15 +42,18 @@ public class AuthService {
      */
     public LoginResponse login(LoginRequest request) {
         // 1. userId로 Account 조회 → 없으면 예외
+        // 없는 계정이어도 BCrypt 비교를 한 번 수행해 응답 시간으로 계정 존재 여부가 드러나지 않게 한다
         Account account = accountRepository.findByUserId(request.getUserId())
                 .orElseThrow(() -> {
+                    passwordEncoder.matches(request.getPassword(), dummyPasswordHash);
                     log.warn("로그인 실패 - 존재하지 않는 계정: userId={}", request.getUserId());
-                    return new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND);
+                    return new BusinessException(ErrorCode.LOGIN_FAILED);
                 });
         // 2. 비밀번호 검증 (passwordEncoder.matches) → 틀리면 예외
+        // 응답은 없는 계정과 동일하게 LOGIN_FAILED (로그로만 원인 구분)
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             log.warn("로그인 실패 - 비밀번호 불일치: userId={}", request.getUserId());
-            throw new BusinessException(ErrorCode.INVALID_PASSWORD);
+            throw new BusinessException(ErrorCode.LOGIN_FAILED);
         }
         // 3. accessToken, refreshToken 생성
         String accessToken =
