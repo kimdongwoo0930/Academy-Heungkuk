@@ -14,10 +14,6 @@ export async function getAccounts(): Promise<AccountInfo[]> {
   return res.data.data;
 }
 
-export async function toggleAccountState(id: number): Promise<void> {
-  await instance.patch(`/v1/admin/accounts/${id}/state`);
-}
-
 export async function updateAccountRole(id: number, role: string): Promise<void> {
   await instance.patch(`/v1/admin/accounts/${id}/role`, { role });
 }

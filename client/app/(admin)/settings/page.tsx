@@ -8,6 +8,7 @@ import {
   updateAccountPassword,
   updateAccountRole,
 } from "@/lib/api/account";
+import { isAxiosError } from "axios";
 import {
   exportReservations,
   importReservations,
@@ -268,8 +269,9 @@ export default function SettingsPage() {
       setAccounts((prev) =>
         prev.map((a) => (a.id === acc.id ? { ...a, role: newRole } : a)),
       );
-    } catch {
-      alert("권한 변경에 실패했습니다.");
+    } catch (err) {
+      // 서버 메시지(예: 마지막 관리자 강등 불가)가 있으면 그대로 보여준다
+      alert((isAxiosError(err) && err.response?.data?.message) || "권한 변경에 실패했습니다.");
     }
   };
 
@@ -279,8 +281,8 @@ export default function SettingsPage() {
     try {
       await deleteAccount(id);
       setAccounts((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      alert("계정 삭제에 실패했습니다.");
+    } catch (err) {
+      alert((isAxiosError(err) && err.response?.data?.message) || "계정 삭제에 실패했습니다.");
     }
   };
 
