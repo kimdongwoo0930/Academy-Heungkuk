@@ -8,15 +8,13 @@ import lombok.Getter;
 @Builder
 public class LoginResponse {
 
+    // refresh 토큰은 바디가 아니라 HttpOnly 쿠키(Set-Cookie)로 내려간다
     @Schema(description = "access Token", example = "암호화된 토큰")
     private String accessToken;
-    @Schema(description = "refresh Token", example = "암호화된 토큰")
-    private String refreshToken;
 
-    public static LoginResponse of(String accessToken, String refreshToken){
+    public static LoginResponse of(String accessToken){
         return LoginResponse.builder()
             .accessToken(accessToken)
-            .refreshToken(refreshToken)
             .build();
     }
 }

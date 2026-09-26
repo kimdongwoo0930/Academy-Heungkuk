@@ -11,6 +11,7 @@ import com.heungkuk.academy.domain.account.entity.Account;
 import com.heungkuk.academy.domain.account.repository.AccountRepository;
 import com.heungkuk.academy.global.exception.BusinessException;
 import com.heungkuk.academy.global.exception.ErrorCode;
+import com.heungkuk.academy.global.security.dto.AuthTokens;
 import com.heungkuk.academy.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,9 +40,9 @@ public class AuthService {
      * 로그인 함수
      *
      * @param request
-     * @return LoginResponse
+     * @return AuthTokens (access 는 바디, refresh 는 쿠키로 컨트롤러에서 내보냄)
      */
-    public LoginResponse login(LoginRequest request) {
+    public AuthTokens login(LoginRequest request) {
         // 1. userId로 Account 조회 → 없으면 예외
         // 없는 계정이어도 BCrypt 비교를 한 번 수행해 응답 시간으로 계정 존재 여부가 드러나지 않게 한다
         Account account = accountRepository.findByUserId(request.getUserId())
@@ -63,8 +64,8 @@ public class AuthService {
         // 5. refreshToken DB 저장
         account.updateRefreshToken(refreshToken);
         log.info("로그인 성공: userId={}, role={}", account.getUserId(), account.getRole());
-        // 6. LoginResponse 반환
-        return LoginResponse.of(accessToken, refreshToken);
+        // 6. 발급한 토큰 반환
+        return new AuthTokens(accessToken, refreshToken);
     }
 
     /**
@@ -99,8 +100,8 @@ public class AuthService {
         String accessToken =
                 jwtProvider.generateAccessToken(account.getUserId(), account.getRole());
 
-        // 6. LoginResponse 반환 refreshToken은 기존 거 그대로
-        return LoginResponse.of(accessToken, refreshToken);
+        // 6. 새 accessToken 만 반환 (refreshToken 은 기존 것 유지 — 쿠키 기반 rotation 은 12번에서)
+        return LoginResponse.of(accessToken);
     }
 }
 
