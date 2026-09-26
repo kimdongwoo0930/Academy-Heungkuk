@@ -25,9 +25,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
-    // 없는 계정 로그인 시 비교용 가짜 해시 (서버 시작 시 1회 생성)
+    // 없는 계정 로그인 시 비교용 가짜 해시
     private String dummyPasswordHash;
 
+    // 서버가 뜰때 한번만 만들어서 정해둔다.
     @PostConstruct
     void initDummyPasswordHash() {
         dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
