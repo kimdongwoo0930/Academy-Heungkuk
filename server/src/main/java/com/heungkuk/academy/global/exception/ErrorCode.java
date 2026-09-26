@@ -26,6 +26,10 @@ public enum ErrorCode {
     LECTURE_ROOM_NOT_FOUND("존재하지 않는 강의실입니다.", HttpStatus.NOT_FOUND),
     LECTURE_ROOM_NOT_AVAILABLE("해당 날짜/시간에 사용 불가능한 강의실입니다.", HttpStatus.CONFLICT),
 
+    // Auth
+    UNAUTHORIZED("인증이 필요합니다.", HttpStatus.UNAUTHORIZED),
+    ACCESS_DENIED("접근 권한이 없습니다.", HttpStatus.FORBIDDEN),
+
     //Token
     INVALID_REFRESH_TOKEN("유효하지 않은 리프레시 토큰입니다.", HttpStatus.UNAUTHORIZED),
 

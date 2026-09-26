@@ -18,6 +18,8 @@ import org.springframework.security.web.context.RequestAttributeSecurityContextR
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.heungkuk.academy.global.security.handler.JwtAccessDeniedHandler;
+import com.heungkuk.academy.global.security.handler.JwtAuthenticationEntryPoint;
 import com.heungkuk.academy.global.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -40,6 +44,10 @@ public class SecurityConfig {
                 // async dispatch 시 SecurityContext 유지: request 속성에 저장 → async 재사용 가능
                 .securityContext(ctx -> ctx
                         .securityContextRepository(new RequestAttributeSecurityContextRepository()))
+                // 미인증 → 401, 권한 부족 → 403 (CommonResponse 형식)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                        .accessDeniedHandler(jwtAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v1/auth/**", "/v1/survey/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs",
