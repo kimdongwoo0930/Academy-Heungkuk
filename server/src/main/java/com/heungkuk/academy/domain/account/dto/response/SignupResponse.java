@@ -28,7 +28,7 @@ public class SignupResponse {
             .id(account.getId())
             .userId(account.getUserId())
             .username(account.getUsername())
-            .role(account.getRole())
+            .role(account.getRole().name())
             .state(account.getState())
             .build();
 }

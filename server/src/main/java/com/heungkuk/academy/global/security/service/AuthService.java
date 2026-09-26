@@ -64,7 +64,7 @@ public class AuthService {
         // 3. 이 로그인(기기)의 세션 ID 생성 후 accessToken, refreshToken 생성
         String sessionId = UUID.randomUUID().toString();
         String accessToken =
-                jwtProvider.generateAccessToken(account.getUserId(), account.getRole());
+                jwtProvider.generateAccessToken(account.getUserId(), account.getRole().name());
         String refreshToken = jwtProvider.generateRefreshToken(account.getUserId(), sessionId);
         // 4. 이 계정의 만료된 세션 정리 (로그아웃 없이 버려진 기기 세션이 쌓이지 않게)
         refreshTokenRepository.deleteExpiredByAccount(account, LocalDateTime.now());
@@ -116,7 +116,7 @@ public class AuthService {
 
         // 5. rotation — 같은 세션 ID 로 새 토큰 발급, 세션의 해시·만료 시각 교체
         String newAccessToken =
-                jwtProvider.generateAccessToken(account.getUserId(), account.getRole());
+                jwtProvider.generateAccessToken(account.getUserId(), account.getRole().name());
         String newRefreshToken = jwtProvider.generateRefreshToken(account.getUserId(), sessionId);
         session.rotate(TokenHashUtil.sha256(newRefreshToken),
                 jwtProvider.getExpiration(newRefreshToken));
