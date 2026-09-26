@@ -2,6 +2,7 @@
 
 import HeungkukLogo from '@/components/ui/HeungkukLogo';
 import { login } from '@/lib/api/auth';
+import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import styles from './page.module.css';
@@ -20,7 +21,8 @@ export default function LoginPage() {
 
         try {
             const res = await login({ userId, password });
-            localStorage.setItem('accessToken', res.accessToken);
+            // access 토큰은 메모리에만 저장 (refresh 토큰은 서버가 HttpOnly 쿠키로 설정)
+            useAuthStore.getState().setAccessToken(res.accessToken);
             router.push('/dashboard');
         } catch {
             setError('아이디 또는 비밀번호가 올바르지 않습니다.');

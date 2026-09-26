@@ -3,6 +3,8 @@ package com.heungkuk.academy.domain.account.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -42,16 +44,17 @@ public class Account extends BaseTimeEntity {
     @Column(nullable = false, length = 255)
     private String password;
 
-    // role: VARCHAR(20), NOT NULL — "ROLE_ADMIN" / "ROLE_USER"
+    // role: VARCHAR(20), NOT NULL — DB 에는 "ROLE_ADMIN" / "ROLE_USER" 문자열로 저장
+    // (ORDINAL 은 enum 순서가 바뀌면 권한이 뒤바뀌므로 STRING 사용)
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String role;
+    private Role role;
 
     // state: BOOLEAN, NOT NULL — 관리자 승인 여부
     @Column(nullable = false)
     private Boolean state;
 
-    @Column(length = 500)
-    private String refreshToken;
+    // refresh 토큰은 기기별 세션 테이블(refresh_token, RefreshToken 엔티티)에서 관리
 
     // created_at, updated_at → BaseTimeEntity 가 자동 처리
 
@@ -60,7 +63,7 @@ public class Account extends BaseTimeEntity {
             .userId(request.getUserId())
             .username(request.getUsername())
             .password(encodedPassword)
-            .role("ROLE_USER")
+            .role(Role.ROLE_USER)
             .state(false)
             .build();
     }
@@ -70,16 +73,12 @@ public class Account extends BaseTimeEntity {
             .userId(request.getUserId())
             .username(request.getUsername())
             .password(encodedPassword)
-            .role("ROLE_USER")
+            .role(Role.ROLE_USER)
             .state(true)
             .build();
     }
 
-    public void updateRefreshToken(String token){
-        this.refreshToken = token;
-    }
-
-    public void updateRole(String role){
+    public void updateRole(Role role){
         this.role = role;
         this.state = true;
     }

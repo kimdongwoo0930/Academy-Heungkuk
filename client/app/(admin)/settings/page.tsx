@@ -17,7 +17,7 @@ import {
 import { getSettings, saveSettings, getDisabledClassrooms, saveDisabledClassrooms, getDisabledRooms, saveDisabledRooms } from "@/lib/api/settings";
 import { CLASSROOM_CATEGORIES, CLASSROOM_LIST } from "@/lib/constants/classrooms";
 import { CellDef, FLOOR_GRID_COLS, FLOOR_GRID_ROWS, FLOOR_LAYOUT_1F, FLOOR_LAYOUT_2F, ROOM_INFO, RoomType } from "@/lib/constants/rooms";
-import { isAdmin, parseJwtPayload } from "@/lib/utils/auth";
+import { getCurrentUserId, isAdmin } from "@/lib/utils/auth";
 import {
   AppSettings,
   getDefaultAppSettings,
@@ -28,18 +28,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "./page.module.css";
-
-function getCurrentUserId(): string | null {
-  if (typeof window === "undefined") return null;
-  const token = localStorage.getItem("accessToken");
-  if (!token) return null;
-  try {
-    const payload = parseJwtPayload(token);
-    return (payload.sub as string) ?? null;
-  } catch {
-    return null;
-  }
-}
 
 interface CreateForm {
   userId: string;

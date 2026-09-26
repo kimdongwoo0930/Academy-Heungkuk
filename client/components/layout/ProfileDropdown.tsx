@@ -1,7 +1,8 @@
 "use client";
 
 import { updateMyPassword } from "@/lib/api/account";
-import { getCurrentUserId, getCurrentUserRole } from "@/lib/utils/auth";
+import { logout } from "@/lib/api/auth";
+import { useAuthStore } from "@/store/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BsBoxArrowRight, BsKey, BsPerson, BsShieldCheck } from "react-icons/bs";
@@ -22,8 +23,9 @@ export default function ProfileDropdown({ collapsed }: Props) {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const userId = getCurrentUserId();
-  const role = getCurrentUserRole();
+  // 메모리(zustand)의 access 토큰에서 꺼낸 사용자 정보
+  const userId = useAuthStore((s) => s.userId);
+  const role = useAuthStore((s) => s.role);
   const isAdmin = role === "ROLE_ADMIN";
 
   useEffect(() => {
@@ -36,9 +38,17 @@ export default function ProfileDropdown({ collapsed }: Props) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    router.push("/auth/login");
+  // 서버에서 이 기기 세션 삭제 + refresh 쿠키 만료 → 메모리 비우고 로그인 화면으로
+  // (HttpOnly 쿠키는 JS 로 지울 수 없으므로 반드시 서버 로그아웃을 거친다. 실패해도 화면은 로그아웃 처리)
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // 네트워크 오류 등 — 메모리 토큰은 아래에서 비움
+    } finally {
+      useAuthStore.getState().clear();
+      router.replace("/auth/login");
+    }
   };
 
   const handlePasswordChange = async () => {
@@ -54,6 +64,9 @@ export default function ProfileDropdown({ collapsed }: Props) {
       setConfirm("");
       setError("");
       setOpen(false);
+      // 비밀번호가 바뀌면 서버가 모든 기기의 세션을 삭제하므로, 이 기기도 바로 다시 로그인하게 한다
+      alert("비밀번호가 변경되었습니다. 다시 로그인해주세요.");
+      await handleLogout();
     } catch {
       setError("비밀번호 변경에 실패했습니다.");
     } finally {
