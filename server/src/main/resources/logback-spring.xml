@@ -84,7 +84,7 @@
     </appender>
 
     <!-- 로컬 개발 환경 -->
-    <springProfile name="default | security">
+    <springProfile name="default | security | dev">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
         </root>
