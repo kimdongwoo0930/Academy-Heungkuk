@@ -12,6 +12,7 @@
 | ------ | --------------- | ------------------- |
 | POST   | `/auth/login`   | 로그인 — access 는 바디, refresh 는 HttpOnly 쿠키(Path=/v1/auth) |
 | POST   | `/auth/reissue` | refresh 쿠키로 access + refresh 재발급 (rotation) |
+| POST   | `/auth/logout`  | 이 기기 세션 삭제 + refresh 쿠키 만료 (항상 200) |
 
 ### 계정 관리 `🔐 JWT 필요`
 

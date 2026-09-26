@@ -58,5 +58,17 @@ public class AuthController {
                 .body(CommonResponse.success(LoginResponse.of(tokens.accessToken())));
     }
 
-
+    @Operation(summary = "로그아웃",
+            description = "이 기기의 로그인 세션을 삭제하고 refreshToken 쿠키를 만료시킵니다. 쿠키가 없거나 무효여도 항상 성공합니다.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "로그아웃 성공")})
+    @PostMapping("/logout")
+    public ResponseEntity<CommonResponse<Void>> logout(
+            @Parameter(hidden = true)
+            @CookieValue(name = RefreshTokenCookieProvider.COOKIE_NAME, required = false) String refreshToken) {
+        authService.logout(refreshToken);
+        // HttpOnly 쿠키는 JS 로 지울 수 없으므로 서버가 같은 이름·Path 에 Max-Age=0 으로 만료시킨다
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieProvider.expire().toString())
+                .body(CommonResponse.success(null));
+    }
 }

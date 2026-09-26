@@ -123,4 +123,29 @@ public class AuthService {
 
         return new AuthTokens(newAccessToken, newRefreshToken);
     }
+
+    /**
+     * 로그아웃 — 이 기기의 세션만 삭제 (다른 기기 세션은 유지)
+     * 쿠키가 없거나 무효여도 예외를 던지지 않는다. 로그아웃은 항상 성공하고, 쿠키 만료는 컨트롤러가 내려준다.
+     *
+     * @param refreshToken 쿠키에서 읽은 refresh 토큰 (없으면 null)
+     */
+    public void logout(String refreshToken) {
+        // 없음 / 만료 / 위조 / access 토큰 → 지울 세션을 특정할 수 없으므로 할 일 없음
+        if (!jwtProvider.isRefreshToken(refreshToken)) {
+            return;
+        }
+        String sessionId = jwtProvider.getSessionId(refreshToken);
+        if (sessionId == null) {
+            return;
+        }
+        // 현재 유효한 토큰일 때만 삭제 — 이미 교체된 옛 토큰으로 남의 세션을 끊지 못하게
+        refreshTokenRepository.findBySessionId(sessionId)
+                .filter(session -> TokenHashUtil.matches(refreshToken, session.getTokenHash()))
+                .ifPresent(session -> {
+                    refreshTokenRepository.delete(session);
+                    log.info("로그아웃: userId={}, sessionId={}", jwtProvider.getUserId(refreshToken),
+                            sessionId);
+                });
+    }
 }
