@@ -66,6 +66,7 @@ infra/compose.sh up -d <서비스>
 3. nginx 설정 검사 (새 설정으로 일회용 컨테이너에서 `nginx -t`) — 실패하면 배포 중단
 4. `up -d --no-deps backend client nginx` — 앱 교체, nginx 는 설정이 바뀐 경우에만 재생성, db·모니터링은 건드리지 않음
 5. `nginx -s reload` — nginx 설정 변경 반영 (연결 끊김 없음)
+6. 안 쓰는 이미지 정리 — 어떤 컨테이너도 쓰지 않고 만든 지 7일 지난 이미지 삭제 (`docker image prune -af --filter until=168h`)
 
 db · 모니터링 서비스 설정을 바꿨다면 배포 후 서버에서 직접 `infra/compose.sh up -d <서비스>` 로 반영합니다.
 
