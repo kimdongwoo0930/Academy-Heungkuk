@@ -81,7 +81,7 @@ limits_config:
 
 > Spring `log_type=error` 와 충돌하지 않도록 NGINX는 `nginx-access` / `nginx-error` 로 분리
 
-NGINX access 로그는 `default.conf`에서 JSON 형식으로 출력:
+NGINX access 로그는 `infra/nginx/conf.d/00-common.conf`에서 JSON 형식으로 출력:
 ```nginx
 log_format json_combined escape=json
   '{"time":"$time_iso8601","method":"$request_method",'

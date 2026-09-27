@@ -94,7 +94,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ../nginx/conf.d:/etc/nginx/conf.d
+      - ../nginx/conf.d:/etc/nginx/conf.d          # 서버 블록 (역할별 파일)
+      - ../nginx/snippets:/etc/nginx/snippets:ro   # 공통 조각 (ssl, proxy, 보안 헤더) — conf.d 에서 include
       - ../nginx/ssl:/etc/nginx/ssl
       - nginx_logs:/var/log/nginx   # promtail(모니터링)이 이 볼륨을 읽어 Loki 로 보냄
     depends_on:

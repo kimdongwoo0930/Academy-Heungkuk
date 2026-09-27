@@ -108,7 +108,8 @@ jobs:
 
             # nginx 설정 검사 — 저장소의 새 설정 그대로 일회용 컨테이너에서 검사, 틀리면 여기서 배포 중단
             docker run --rm --network academy-heungkuk-v2-_hka-network \
-              -v "$PWD/infra/nginx/conf.d:/etc/nginx/conf.d:ro" -v "$PWD/infra/nginx/ssl:/etc/nginx/ssl:ro" \
+              -v "$PWD/infra/nginx/conf.d:/etc/nginx/conf.d:ro" -v "$PWD/infra/nginx/snippets:/etc/nginx/snippets:ro" \
+              -v "$PWD/infra/nginx/ssl:/etc/nginx/ssl:ro" \
               nginx:1.29.6-alpine nginx -t
 
             $COMPOSE pull backend client

@@ -14,9 +14,20 @@ infra/
 │   ├── compose.yml               # 앱: db, backend, client, nginx + 공용 네트워크·볼륨
 │   └── compose.monitoring.yml    # 모니터링: prometheus, loki, promtail, grafana, node-exporter, cadvisor
 ├── nginx/
-│   ├── conf.d/
-│   │   ├── default.conf          # 도메인별 서버 블록, 보안 헤더, actuator 차단, 업로드 크기
-│   │   └── cloudflare-realip.conf # Cloudflare 대역 → 실제 접속자 IP 복원
+│   ├── conf.d/                   # nginx 가 파일 이름 순서대로 읽음 (번호 = 읽는 순서)
+│   │   ├── 00-common.conf            # 로그 형식(JSON), access_log, server_tokens off
+│   │   ├── 01-cloudflare-realip.conf # Cloudflare 대역 → 실제 접속자 IP 복원
+│   │   ├── 10-default-reject.conf    # 등록 안 된 도메인·IP 직접 접속 거부
+│   │   ├── 20-http-redirect.conf     # 80 → https
+│   │   ├── 30-frontend.conf          # academy-hk.com, www — 보안 헤더, X-Powered-By 숨김
+│   │   ├── 40-api.conf               # api — actuator 차단(health 만 공개), 업로드 10MB
+│   │   └── 50-grafana.conf           # grafana — HSTS
+│   ├── snippets/                 # 공통 조각 (conf.d 에서 include)
+│   │   ├── ssl.conf                  # 인증서 경로 + TLS 버전·암호
+│   │   ├── proxy.conf                # 공통 프록시 헤더 (Host, X-Real-IP, X-Forwarded-*)
+│   │   ├── proxy-upgrade.conf        # WebSocket 업그레이드 헤더
+│   │   ├── hsts.conf                 # HSTS
+│   │   └── security-headers.conf     # 프론트 보안 헤더 (hsts + 4개)
 │   └── ssl/                      # Cloudflare Origin 인증서 (gitignore — 서버에만 존재)
 └── monitoring/
     ├── prometheus/prometheus.yml
@@ -76,12 +87,14 @@ db · 모니터링 서비스 설정을 바꿨다면 배포 후 서버에서 직�
 ## 자주 하는 작업
 
 ### nginx 설정 변경
-`infra/nginx/conf.d/` 수정 → main 배포 시 자동 검사·반영.
+`infra/nginx/conf.d/`(서버 블록) 또는 `snippets/`(공통 조각) 수정 → main 배포 시 자동 검사·반영.
+- 도메인 추가: `conf.d/` 에 번호를 붙인 파일 하나 추가 + `20-http-redirect.conf` 의 server_name 에 추가
+- 주의: `location` 안에서 `add_header` 를 쓰면 server 단위 보안 헤더가 전부 무시됨 — 보안 헤더는 server 단위 include 로만
 서버에서 바로 반영하려면: `docker exec hka-nginx nginx -t && docker exec hka-nginx nginx -s reload`
 
 ### Cloudflare IP 목록 갱신 (드묾 — Cloudflare 가 대역을 바꿀 때)
 목록: https://www.cloudflare.com/ips/ — **두 곳을 같이** 바꿉니다.
-1. `infra/nginx/conf.d/cloudflare-realip.conf` 의 `set_real_ip_from`
+1. `infra/nginx/conf.d/01-cloudflare-realip.conf` 의 `set_real_ip_from`
 2. Oracle 보안 목록 수신 규칙 (80, 443) — Oracle Cloud Shell 에서 Cloudflare 목록을 받아 수신 규칙 전체를 한 번에 교체
 
 ### 외부 이미지 버전 올리기
