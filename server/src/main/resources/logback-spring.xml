@@ -36,7 +36,7 @@
         </filter>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_DIR}/error.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>60</maxHistory>
+            <maxHistory>30</maxHistory> <!-- 한 달 보관 (다른 로그와 동일) -->
         </rollingPolicy>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>

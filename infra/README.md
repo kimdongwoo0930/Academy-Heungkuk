@@ -29,6 +29,8 @@ infra/
 │   │   ├── hsts.conf                 # HSTS
 │   │   └── security-headers.conf     # 프론트 보안 헤더 (hsts + 4개)
 │   └── ssl/                      # Cloudflare Origin 인증서 (gitignore — 서버에만 존재)
+├── host/
+│   └── journald/retention.conf   # 서버 OS 시스템 로그 보관 설정 (배포로 적용 안 됨 — 아래 "서버 OS 설정")
 └── monitoring/
     ├── prometheus/prometheus.yml
     ├── loki/loki-config.yaml
@@ -85,6 +87,19 @@ db · 모니터링 서비스 설정을 바꿨다면 배포 후 서버에서 직�
 
 ---
 
+## 로그 보관 정책 (한 달)
+
+| 로그 | 위치 | 보관 | 설정 |
+| --- | --- | --- | --- |
+| Spring 로그 파일 | `logs/*.log` (app, error, auth, reservation, access) | 30일 (app 은 최대 1GB) | `server/src/main/resources/logback-spring.xml` `maxHistory` |
+| Loki (로그 검색) | `loki_data` 볼륨 | 30일 (compactor 가 삭제) | `monitoring/loki/loki-config.yaml` `retention_period: 720h` |
+| 서버 시스템 로그 | `/var/log/journal` | 한 달, 최대 500MB | `host/journald/retention.conf` |
+| nginx 접근 로그 | `nginx_logs` 볼륨 | nginx 컨테이너 시작 시 비워짐 (내용은 Loki 에 보관) | `docker/compose.yml` nginx `command` |
+| Prometheus 메트릭 | `prometheus_data` 볼륨 | 15일 | `docker/compose.monitoring.yml` `--storage.tsdb.retention.time` |
+| 컨테이너 로그 (`docker logs`) | `/var/lib/docker/containers` | 제한 없음 (컨테이너 재생성 시 삭제) | Docker 는 기간 기준 삭제를 지원하지 않음 |
+
+---
+
 ## 자주 하는 작업
 
 ### nginx 설정 변경
@@ -109,6 +124,18 @@ BACKEND_IMAGE=ghcr.io/kimdongwoo0930/heungkuk-backend:<SHA>
 CLIENT_IMAGE=ghcr.io/kimdongwoo0930/heungkuk-client:<SHA>
 infra/compose.sh up -d --no-deps backend client
 ```
+
+### 서버 OS 설정 (배포로 적용되지 않음 — 새 서버에서 한 번)
+```bash
+# 시스템 로그 한 달 보관
+sudo mkdir -p /etc/systemd/journald.conf.d
+sudo install -m 644 infra/host/journald/retention.conf /etc/systemd/journald.conf.d/retention.conf
+sudo systemctl restart systemd-journald
+```
+
+### 모니터링 설정 변경 (prometheus / loki / promtail)
+설정 파일 수정 → main 배포 → 서버에서 해당 서비스 재생성 (배포 스크립트는 앱·nginx 만 교체):
+`infra/compose.sh up -d --force-recreate <서비스>`
 
 ### 새 서버 구성 시 준비물 (git 에 없는 것)
 - 저장소 루트 `.env` — DB · JWT_SECRET · Grafana 계정/SMTP 값
