@@ -96,7 +96,7 @@ db · 모니터링 서비스 설정을 바꿨다면 배포 후 서버에서 직�
 | 서버 시스템 로그 | `/var/log/journal` | 한 달, 최대 500MB | `host/journald/retention.conf` |
 | nginx 접근 로그 | `nginx_logs` 볼륨 | nginx 컨테이너 시작 시 비워짐 (내용은 Loki 에 보관) | `docker/compose.yml` nginx `command` |
 | Prometheus 메트릭 | `prometheus_data` 볼륨 | 15일 | `docker/compose.monitoring.yml` `--storage.tsdb.retention.time` |
-| 컨테이너 로그 (`docker logs`) | `/var/lib/docker/containers` | 제한 없음 (컨테이너 재생성 시 삭제) | Docker 는 기간 기준 삭제를 지원하지 않음 |
+| 컨테이너 로그 (`docker logs`) | `/var/lib/docker/containers` | 컨테이너당 최대 30MB (10MB × 3, 보통 한 달치 이상) | `docker/compose*.yml` `x-common.logging` — Docker 는 기간 기준 삭제를 지원하지 않아 크기로 제한 |
 
 ---
 
