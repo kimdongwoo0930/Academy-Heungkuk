@@ -41,6 +41,8 @@
 
 ### loki-config.yaml (`infra/monitoring/loki/`)
 
+> 보관 기간 30일 — `limits_config.retention_period: 720h` + `compactor.retention_enabled: true` (지난 로그는 compactor 가 삭제)
+
 ```yaml
 auth_enabled: false  # Loki 자체 인증 비활성화 — 외부 포트 미노출이므로 안전
 
