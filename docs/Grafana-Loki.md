@@ -23,22 +23,23 @@
 
 | 컨테이너명          | 이미지                          | 역할                         |
 | ------------------- | ------------------------------- | ---------------------------- |
-| `hka-loki`          | grafana/loki:latest             | 로그 저장소                  |
-| `hka-promtail`      | grafana/promtail:latest         | 로그 파일 수집 에이전트      |
-| `hka-prometheus`    | prom/prometheus:latest          | 메트릭 수집 및 저장          |
-| `hka-node-exporter` | prom/node-exporter:latest       | 호스트 CPU / 메모리 / 디스크 |
-| `hka-cadvisor`      | gcr.io/cadvisor/cadvisor:latest | 컨테이너별 자원 사용량       |
-| `hka-grafana`       | grafana/grafana:latest          | 대시보드 및 알림             |
+| `hka-loki`          | grafana/loki:3.7.1              | 로그 저장소                  |
+| `hka-promtail`      | grafana/promtail:3.6.8          | 로그 파일 수집 에이전트      |
+| `hka-prometheus`    | prom/prometheus:v3.11.1         | 메트릭 수집 및 저장          |
+| `hka-node-exporter` | prom/node-exporter:v1.11.1      | 호스트 CPU / 메모리 / 디스크 |
+| `hka-cadvisor`      | gcr.io/cadvisor/cadvisor:v0.55.1 | 컨테이너별 자원 사용량       |
+| `hka-grafana`       | grafana/grafana:12.4.2          | 대시보드 및 알림             |
 
 - 모든 모니터링 서비스는 `hka-network` 내부 통신 (외부 포트 미노출)
 - Grafana만 NGINX를 통해 `https://grafana.academy-hk.com` 접근
 - SMTP 설정은 `.env`에서 관리
+- compose 파일: `infra/docker/docker-compose.yml`, 이미지 버전은 운영 버전으로 고정 (올릴 때는 태그 변경 후 해당 서비스만 pull/up)
 
 ---
 
 ## 설정 파일
 
-### loki-config.yaml
+### loki-config.yaml (`infra/monitoring/loki/`)
 
 ```yaml
 auth_enabled: false  # Loki 자체 인증 비활성화 — 외부 포트 미노출이므로 안전
@@ -59,7 +60,7 @@ limits_config:
 
 ---
 
-### promtail-config.yaml
+### promtail-config.yaml (`infra/monitoring/promtail/`)
 
 **Spring 로그 수집** (`./logs` → `/var/log/spring`):
 
@@ -92,7 +93,7 @@ Promtail pipeline_stages로 JSON 파싱 후 `method`, `status`를 라벨로 추�
 
 ---
 
-### prometheus.yml
+### prometheus.yml (`infra/monitoring/prometheus/`)
 
 ```yaml
 scrape_configs:
@@ -205,7 +206,7 @@ promtail:
 
 ## 통합 대시보드
 
-파일: `grafana/dashboards/hka-overview.json`
+파일: `infra/monitoring/grafana/dashboards/hka-overview.json`
 
 Import 방법:
 1. Grafana → **Dashboards → Import → Upload JSON file**

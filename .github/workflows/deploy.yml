@@ -97,11 +97,23 @@ jobs:
             # compose / nginx / 모니터링 설정 파일은 계속 서버 디스크에서 마운트되므로 레포는 최신으로 유지
             git fetch origin main
             git reset --hard origin/main
-            # nginx 설정 검사 — 틀리면 여기서 배포 중단 (실행 중인 nginx 는 기존 설정 유지)
-            docker exec hka-nginx nginx -t
-            docker compose pull backend client
-            # --no-deps: 의존 서비스(db 등)는 설정이 바뀌어 있어도 재생성하지 않음 (앱만 교체)
-            docker compose up -d --no-deps backend client
+            # 인프라 설정은 infra/ 아래, 비밀값 .env 는 저장소 루트
+            COMPOSE="docker compose -f infra/docker/docker-compose.yml --env-file .env"
+
+            # (1회성) 인증서를 옛 위치(nginx/ssl)에서 새 위치(infra/nginx/ssl)로 복사 — 이미 있으면 건너뜀
+            if [ ! -d infra/nginx/ssl ] && [ -d nginx/ssl ]; then
+              cp -a nginx/ssl infra/nginx/ssl
+              chmod 600 infra/nginx/ssl/origin.key
+            fi
+
+            # nginx 설정 검사 — 저장소의 새 설정 그대로 일회용 컨테이너에서 검사, 틀리면 여기서 배포 중단
+            docker run --rm --network academy-heungkuk-v2-_hka-network \
+              -v "$PWD/infra/nginx/conf.d:/etc/nginx/conf.d:ro" -v "$PWD/infra/nginx/ssl:/etc/nginx/ssl:ro" \
+              nginx:1.29.6-alpine nginx -t
+
+            $COMPOSE pull backend client
+            # --no-deps: db·모니터링은 건드리지 않음 / nginx 는 설정(마운트 경로·이미지)이 바뀐 경우에만 재생성
+            $COMPOSE up -d --no-deps backend client nginx
             # 바뀐 nginx 설정 반영 — reload 는 기존 연결을 끊지 않음
             docker exec hka-nginx nginx -s reload
             docker image prune -f --filter until=24h
