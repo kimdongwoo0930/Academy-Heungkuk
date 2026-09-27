@@ -1,0 +1,94 @@
+# 모니터링 스택 — Prometheus(메트릭) · Loki/Promtail(로그) · Grafana(대시보드) · node-exporter · cAdvisor
+# compose.yml 과 합쳐서 하나의 프로젝트로 동작 (hka-network, nginx_logs 볼륨은 compose.yml 에 정의)
+# 실행: infra/compose.sh <명령>   — 설정 설명은 docs/Grafana-Loki.md
+# 모든 서비스는 내부 네트워크 전용 (외부 포트 없음, Grafana 만 nginx 를 통해 공개)
+
+x-common: &common
+  restart: unless-stopped
+  networks:
+    - hka-network
+
+services:
+  node-exporter:
+    <<: *common
+    image: prom/node-exporter:v1.11.1
+    container_name: hka-node-exporter
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    volumes:
+      - /:/host:ro,rslave
+
+  cadvisor:
+    <<: *common
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    container_name: hka-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /cgroup:/cgroup:ro
+
+  prometheus:
+    <<: *common
+    image: prom/prometheus:v3.11.1
+    container_name: hka-prometheus
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+
+  loki:
+    <<: *common
+    image: grafana/loki:3.7.1
+    container_name: hka-loki
+    volumes:
+      - ../monitoring/loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    <<: *common
+    image: grafana/promtail:3.6.8
+    container_name: hka-promtail
+    volumes:
+      - ../../logs:/var/log/spring
+      - nginx_logs:/var/log/nginx # NGINX 로그 수집
+      - ../monitoring/promtail/promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
+
+  grafana:
+    <<: *common
+    image: grafana/grafana:12.4.2
+    container_name: hka-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=smtp.gmail.com:587
+      - GF_SMTP_USER=${GRAFANA_SMTP_USER}
+      - GF_SMTP_PASSWORD=${GRAFANA_SMTP_PASSWORD}
+      - GF_SMTP_FROM_ADDRESS=${GRAFANA_SMTP_USER}
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_USERS_ALLOW_SIGN_UP=false # 회원가입 막기
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - loki
+      - prometheus
+
+volumes:
+  loki_data:
+  grafana_data:
+  prometheus_data:
