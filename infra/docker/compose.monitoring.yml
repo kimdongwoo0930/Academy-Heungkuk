@@ -7,6 +7,13 @@ x-common: &common
   restart: unless-stopped
   networks:
     - hka-network
+  # 컨테이너 로그(docker logs) 크기 제한 — 10MB 가 차면 새 파일, 최대 3개(30MB) 유지 후 오래된 것부터 삭제
+  # (Docker 는 기간 기준 삭제를 지원하지 않음. 앱 로그 원본은 logs/*.log 와 Loki 에 따로 보관)
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
 
 services:
   node-exporter:
