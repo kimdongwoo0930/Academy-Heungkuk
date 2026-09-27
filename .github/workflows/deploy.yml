@@ -97,8 +97,8 @@ jobs:
             # compose / nginx / 모니터링 설정 파일은 계속 서버 디스크에서 마운트되므로 레포는 최신으로 유지
             git fetch origin main
             git reset --hard origin/main
-            # 인프라 설정은 infra/ 아래, 비밀값 .env 는 저장소 루트
-            COMPOSE="docker compose -f infra/docker/docker-compose.yml --env-file .env"
+            # 인프라 설정은 infra/ 아래 — compose 는 앱·모니터링 두 파일을 합쳐 쓰므로 항상 래퍼로 실행
+            COMPOSE="infra/compose.sh"
 
             # (1회성) 인증서를 옛 위치(nginx/ssl)에서 새 위치(infra/nginx/ssl)로 복사 — 이미 있으면 건너뜀
             if [ ! -d infra/nginx/ssl ] && [ -d nginx/ssl ]; then

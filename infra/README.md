@@ -9,8 +9,10 @@
 
 ```
 infra/
+├── compose.sh                    # docker compose 래퍼 — 두 compose 파일 + 루트 .env 를 항상 함께 지정
 ├── docker/
-│   └── docker-compose.yml        # 운영 전체 서비스 (backend, client, db, nginx, 모니터링)
+│   ├── compose.yml               # 앱: db, backend, client, nginx + 공용 네트워크·볼륨
+│   └── compose.monitoring.yml    # 모니터링: prometheus, loki, promtail, grafana, node-exporter, cadvisor
 ├── nginx/
 │   ├── conf.d/
 │   │   ├── default.conf          # 도메인별 서버 블록, 보안 헤더, actuator 차단, 업로드 크기
@@ -29,16 +31,18 @@ infra/
 
 ## 실행
 
-항상 **저장소 루트**에서 실행합니다.
+항상 **래퍼 `infra/compose.sh`** 로 실행합니다 (어느 폴더에서 실행해도 됨).
 
 ```bash
-COMPOSE="docker compose -f infra/docker/docker-compose.yml --env-file .env"
-$COMPOSE ps
-$COMPOSE logs --tail=100 backend
-$COMPOSE up -d <서비스>
+infra/compose.sh ps
+infra/compose.sh logs --tail=100 backend
+infra/compose.sh up -d <서비스>
 ```
 
-- compose 안의 상대 경로는 `infra/docker/` 기준
+- 래퍼 = `docker compose -f infra/docker/compose.yml -f infra/docker/compose.monitoring.yml --env-file .env`
+  두 파일이 합쳐져 하나의 프로젝트로 동작. **한 파일만 지정해서 실행하지 않기** — 다른 파일의 컨테이너를 "주인 없는 컨테이너"로 보고,
+  `--remove-orphans` 를 붙이면 삭제될 수 있음
+- compose 안의 상대 경로는 `infra/docker/` 기준, 공통 설정(restart, network)은 파일마다 `x-common` 앵커로 묶음
 - 프로젝트 이름은 compose 파일에 `name: academy-heungkuk-v2-` 로 고정 — 폴더를 옮겨도 볼륨(`academy-heungkuk-v2-_mysql_data` 등)·네트워크 이름이 바뀌지 않게 하기 위함. **지우면 DB 가 빈 새 볼륨에 붙습니다.**
 
 ---
@@ -52,7 +56,7 @@ $COMPOSE up -d <서비스>
 4. `up -d --no-deps backend client nginx` — 앱 교체, nginx 는 설정이 바뀐 경우에만 재생성, db·모니터링은 건드리지 않음
 5. `nginx -s reload` — nginx 설정 변경 반영 (연결 끊김 없음)
 
-db · 모니터링 서비스 설정을 바꿨다면 배포 후 서버에서 직접 `$COMPOSE up -d <서비스>` 로 반영합니다.
+db · 모니터링 서비스 설정을 바꿨다면 배포 후 서버에서 직접 `infra/compose.sh up -d <서비스>` 로 반영합니다.
 
 ---
 
@@ -81,7 +85,7 @@ db · 모니터링 서비스 설정을 바꿨다면 배포 후 서버에서 직�
 2. Oracle 보안 목록 수신 규칙 (80, 443) — Oracle Cloud Shell 에서 Cloudflare 목록을 받아 수신 규칙 전체를 한 번에 교체
 
 ### 외부 이미지 버전 올리기
-`docker-compose.yml` 의 태그 변경 → 배포 후 서버에서 `$COMPOSE pull <서비스> && $COMPOSE up -d <서비스>`
+`infra/docker/compose*.yml` 의 태그 변경 → 배포 후 서버에서 `infra/compose.sh pull <서비스> && infra/compose.sh up -d <서비스>`
 (Grafana · Loki 는 메이저 버전에서 설정 형식이 바뀌는 경우가 많으니 릴리스 노트 확인)
 
 ### 앱 롤백
@@ -89,7 +93,7 @@ db · 모니터링 서비스 설정을 바꿨다면 배포 후 서버에서 직�
 ```bash
 BACKEND_IMAGE=ghcr.io/kimdongwoo0930/heungkuk-backend:<SHA>
 CLIENT_IMAGE=ghcr.io/kimdongwoo0930/heungkuk-client:<SHA>
-$COMPOSE up -d --no-deps backend client
+infra/compose.sh up -d --no-deps backend client
 ```
 
 ### 새 서버 구성 시 준비물 (git 에 없는 것)

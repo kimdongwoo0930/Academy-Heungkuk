@@ -33,7 +33,7 @@
 - 모든 모니터링 서비스는 `hka-network` 내부 통신 (외부 포트 미노출)
 - Grafana만 NGINX를 통해 `https://grafana.academy-hk.com` 접근
 - SMTP 설정은 `.env`에서 관리
-- compose 파일: `infra/docker/docker-compose.yml`, 이미지 버전은 운영 버전으로 고정 (올릴 때는 태그 변경 후 해당 서비스만 pull/up)
+- compose 파일: `infra/docker/compose.monitoring.yml` (실행은 `infra/compose.sh`), 이미지 버전은 운영 버전으로 고정 (올릴 때는 태그 변경 후 해당 서비스만 pull/up)
 
 ---
 
