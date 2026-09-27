@@ -1,6 +1,8 @@
+# 외부 이미지는 운영 중인 버전으로 고정 (latest 는 재생성·서버 재구성 시 예고 없이 메이저 버전이 바뀔 수 있음)
+# 버전을 올릴 때는 여기 태그를 바꾸고 해당 서비스만 pull / up 한다
 services:
   db:
-    image: mysql:8.0
+    image: mysql:8.0.45
     container_name: db
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
@@ -45,7 +47,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.29.6-alpine
     container_name: hka-nginx
     # 공식 nginx 이미지는 /var/log/nginx/access.log → /dev/stdout (pipe) 심볼릭 링크로 생성
     # Promtail은 pipe를 읽지 못하므로 시작 전 심볼릭 링크를 제거하고 실제 파일로 교체
@@ -89,7 +91,7 @@ services:
     restart: unless-stopped
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.11.1
     container_name: hka-node-exporter
     command:
       - "--path.rootfs=/host"
@@ -101,7 +103,7 @@ services:
     restart: unless-stopped
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
     container_name: hka-cadvisor
     privileged: true
     devices:
@@ -117,7 +119,7 @@ services:
     restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.11.1
     container_name: hka-prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
@@ -132,7 +134,7 @@ services:
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.7.1
     container_name: hka-loki
     volumes:
       - ./loki-config.yaml:/etc/loki/local-config.yaml
@@ -143,7 +145,7 @@ services:
     restart: unless-stopped
 
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:3.6.8
     container_name: hka-promtail
     volumes:
       - ./logs:/var/log/spring
@@ -157,7 +159,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.4.2
     container_name: hka-grafana
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
