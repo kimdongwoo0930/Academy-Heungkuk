@@ -97,6 +97,11 @@ jobs:
             # compose / nginx / 모니터링 설정 파일은 계속 서버 디스크에서 마운트되므로 레포는 최신으로 유지
             git fetch origin main
             git reset --hard origin/main
+            # nginx 설정 검사 — 틀리면 여기서 배포 중단 (실행 중인 nginx 는 기존 설정 유지)
+            docker exec hka-nginx nginx -t
             docker compose pull backend client
-            docker compose up -d backend client
+            # --no-deps: 의존 서비스(db 등)는 설정이 바뀌어 있어도 재생성하지 않음 (앱만 교체)
+            docker compose up -d --no-deps backend client
+            # 바뀐 nginx 설정 반영 — reload 는 기존 연결을 끊지 않음
+            docker exec hka-nginx nginx -s reload
             docker image prune -f --filter until=24h
