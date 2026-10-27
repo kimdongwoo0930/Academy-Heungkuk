@@ -193,7 +193,7 @@ API 401 ─▶ axios 응답 인터셉터 ─▶ refreshAccessToken() ─▶ POST
 
 | 경로 | 접근 |
 | --- | --- |
-| `/v1/auth/**`, `/v1/survey/**`, `/actuator/health`, `/actuator/prometheus` | 공개 |
+| `/v1/auth/**`, `/v1/survey/**` | 공개 |
 | Swagger (`/swagger-ui/**`, `/v3/api-docs/**` 등) | springdoc 이 켜진 환경(로컬)에서만 공개 |
 | GET 엑셀 다운로드/내보내기 (`/v1/admin/reservations/*/estimate`, `trade`, `confirmation`, `export`) | ROLE_ADMIN |
 | GET `/v1/admin/**` | 로그인한 사용자 |
@@ -221,7 +221,7 @@ API 401 ─▶ axios 응답 인터셉터 ─▶ refreshAccessToken() ─▶ POST
 | CORS | 허용 origin 명시 (`app.cors.allowed-origins`). 로컬 `http://localhost:3000`, 운영 `https://academy-hk.com`, `https://www.academy-hk.com` | `*` + credentials 는 아무 사이트나 인증 요청 후 응답을 읽을 수 있음. 중복 `CorsFilter` 빈 제거, `http.cors()` 하나로 |
 | Swagger | 운영(docker)에서 springdoc 비활성화 + 공개 경로도 같은 설정값에 연동 | `/v3/api-docs` 가 관리자 API 전체 설계도를 노출 |
 | 없는 경로 | `NoResourceFoundException` → **404** | 기존엔 500 + ERROR 스택트레이스 |
-| 로그 조회 API | `/v1/admin/logs` **삭제** | 미사용, ROLE_USER 도 접근 가능 + `lines` 무제한. 로그는 Grafana + Loki 로 조회 |
+| 로그 조회 API | `/v1/admin/logs` **삭제** | 미사용, ROLE_USER 도 접근 가능 + `lines` 무제한 |
 | 미사용 코드 | 프론트 signup 페이지·API, `toggleAccountState`, `ACCOUNT_PENDING` 삭제 | 공격 면적 축소 |
 
 ### 7-1. 로그인 실패 응답 통일

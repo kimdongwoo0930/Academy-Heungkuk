@@ -52,10 +52,6 @@ dependencies {
     // Excel (Apache POI) — export / import
     implementation 'org.apache.poi:poi-ooxml:5.3.0'
 
-    // Monitoring — Actuator + Micrometer Prometheus
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'io.micrometer:micrometer-registry-prometheus'
-
 }
 
 tasks.named('test') {

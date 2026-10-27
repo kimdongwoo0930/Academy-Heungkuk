@@ -31,7 +31,7 @@ logs/*
 oracle
 design/*
 
-server/.idea/
+.idea/
 
 # macOS
 .DS_Store

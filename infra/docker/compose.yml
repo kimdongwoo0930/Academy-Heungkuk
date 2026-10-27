@@ -1,9 +1,7 @@
 # 앱 스택 — db, backend, client, nginx + 공용 네트워크·볼륨
-# 모니터링은 compose.monitoring.yml 로 분리 (두 파일을 합쳐서 하나의 프로젝트로 동작)
 #
 # 실행은 항상 래퍼로:  infra/compose.sh <명령>
-#   (= docker compose -f compose.yml -f compose.monitoring.yml --env-file <루트>/.env)
-#   한 파일만 지정해서 실행하면 다른 파일의 컨테이너를 "주인 없는 컨테이너"로 보므로 주의
+#   (= docker compose -f compose.yml --env-file <루트>/.env)
 # - 상대 경로는 이 폴더(infra/docker/) 기준, .env(비밀값)는 저장소 루트
 
 # 프로젝트 이름 고정 — compose 는 기본으로 "파일이 있는 폴더 이름"을 프로젝트 이름으로 쓰는데,
@@ -16,7 +14,7 @@ x-common: &common
   networks:
     - hka-network
   # 컨테이너 로그(docker logs) 크기 제한 — 10MB 가 차면 새 파일, 최대 3개(30MB) 유지 후 오래된 것부터 삭제
-  # (Docker 는 기간 기준 삭제를 지원하지 않음. 앱 로그 원본은 logs/*.log 와 Loki 에 따로 보관)
+  # (Docker 는 기간 기준 삭제를 지원하지 않음. 앱 로그 원본은 logs/*.log 에 따로 보관)
   logging:
     driver: json-file
     options:
@@ -89,14 +87,6 @@ services:
     <<: *common
     image: nginx:1.29.6-alpine
     container_name: hka-nginx
-    # 공식 nginx 이미지는 /var/log/nginx/access.log → /dev/stdout (pipe) 심볼릭 링크로 생성
-    # Promtail은 pipe를 읽지 못하므로 시작 전 심볼릭 링크를 제거하고 실제 파일로 교체
-    command: >
-      /bin/sh -c "
-        rm -f /var/log/nginx/access.log /var/log/nginx/error.log &&
-        touch /var/log/nginx/access.log /var/log/nginx/error.log &&
-        nginx -g 'daemon off;'
-      "
     ports:
       - "80:80"
       - "443:443"
@@ -104,7 +94,6 @@ services:
       - ../nginx/conf.d:/etc/nginx/conf.d          # 서버 블록 (역할별 파일)
       - ../nginx/snippets:/etc/nginx/snippets:ro   # 공통 조각 (ssl, proxy, 보안 헤더) — conf.d 에서 include
       - ../nginx/ssl:/etc/nginx/ssl
-      - nginx_logs:/var/log/nginx   # promtail(모니터링)이 이 볼륨을 읽어 Loki 로 보냄
     depends_on:
       - backend
 
@@ -114,4 +103,3 @@ networks:
 
 volumes:
   mysql_data:
-  nginx_logs:
