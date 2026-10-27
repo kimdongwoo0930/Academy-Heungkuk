@@ -73,12 +73,3 @@
 | ------ | ----------------- | ----------------------- |
 | GET    | `/admin/settings` | 설정 전체 조회 (KV Map) |
 | PUT    | `/admin/settings` | 설정 전체 저장          |
-
-### 모니터링 (내부 전용, 인증 불필요)
-
-> Prometheus가 스크랩하는 엔드포인트 — 외부 직접 호출 불필요
-
-| Method | Endpoint              | 설명                              |
-| ------ | --------------------- | --------------------------------- |
-| GET    | `/actuator/health`    | 애플리케이션 헬스 체크            |
-| GET    | `/actuator/prometheus`| Prometheus 메트릭 스크랩 엔드포인트 |
