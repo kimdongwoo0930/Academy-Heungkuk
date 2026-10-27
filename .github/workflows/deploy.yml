@@ -117,4 +117,6 @@ jobs:
             $COMPOSE up -d --no-deps backend client nginx
             # 바뀐 nginx 설정 반영 — reload 는 기존 연결을 끊지 않음
             docker exec hka-nginx nginx -s reload
-            docker image prune -f --filter until=24h
+            # 안 쓰는 이미지 정리 — 어떤 컨테이너도 쓰지 않고 만든 지 7일 지난 이미지 (-a: 이름 있는 이미지 포함)
+            # 최근 7일 이미지는 서버 롤백용으로 남김, 그보다 오래된 앱 이미지는 GHCR 에서 SHA 태그로 다시 받을 수 있음
+            docker image prune -af --filter "until=168h"

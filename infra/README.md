@@ -27,6 +27,8 @@ infra/
 │   │   ├── hsts.conf                 # HSTS
 │   │   └── security-headers.conf     # 프론트 보안 헤더 (hsts + 4개)
 │   └── ssl/                      # Cloudflare Origin 인증서 (gitignore — 서버에만 존재)
+└── host/
+    └── journald/retention.conf   # 서버 OS 시스템 로그 보관 설정 (배포로 적용 안 됨 — 아래 "서버 OS 설정")
 ```
 
 저장소 루트에 남는 것: `.env`(비밀값, gitignore), `CHANGELOG.md`(프론트 변경 이력 화면이 읽음)
@@ -57,6 +59,7 @@ infra/compose.sh up -d <서비스>
 3. nginx 설정 검사 (새 설정으로 일회용 컨테이너에서 `nginx -t`) — 실패하면 배포 중단
 4. `up -d --no-deps backend client nginx` — 앱 교체, nginx 는 설정이 바뀐 경우에만 재생성, db 는 건드리지 않음
 5. `nginx -s reload` — nginx 설정 변경 반영 (연결 끊김 없음)
+6. 안 쓰는 이미지 정리 — 어떤 컨테이너도 쓰지 않고 만든 지 7일 지난 이미지 삭제 (`docker image prune -af --filter until=168h`)
 
 db 서비스 설정을 바꿨다면 배포 후 서버에서 직접 `infra/compose.sh up -d <서비스>` 로 반영합니다.
 
@@ -72,6 +75,16 @@ db 서비스 설정을 바꿨다면 배포 후 서버에서 직접 `infra/compos
 | 서버 방화벽(iptables) | Oracle 우분투 기본값 유지 |
 | nginx | 등록 도메인 외 요청 거부(default_server), 보안 헤더, 업로드 10MB |
 | 외부 공개 포트 | nginx 80 / 443 뿐 (spring 8888, db 3306 은 내부 네트워크 전용) |
+
+---
+
+## 로그 보관 정책
+
+| 로그 | 위치 | 보관 | 설정 |
+| --- | --- | --- | --- |
+| Spring 로그 파일 | `logs/*.log` (app, error, auth, reservation, access) | 60일 (app 은 최대 1GB) | `server/src/main/resources/logback-spring.xml` `maxHistory` |
+| 서버 시스템 로그 | `/var/log/journal` | 한 달, 최대 500MB | `host/journald/retention.conf` |
+| 컨테이너 로그 (`docker logs`) | `/var/lib/docker/containers` | 컨테이너당 최대 30MB (10MB × 3, 보통 한 달치 이상) | `docker/compose.yml` `x-common.logging` — Docker 는 기간 기준 삭제를 지원하지 않아 크기로 제한 |
 
 ---
 
@@ -97,6 +110,14 @@ db 서비스 설정을 바꿨다면 배포 후 서버에서 직접 `infra/compos
 BACKEND_IMAGE=ghcr.io/kimdongwoo0930/heungkuk-backend:<SHA>
 CLIENT_IMAGE=ghcr.io/kimdongwoo0930/heungkuk-client:<SHA>
 infra/compose.sh up -d --no-deps backend client
+```
+
+### 서버 OS 설정 (배포로 적용되지 않음 — 새 서버에서 한 번)
+```bash
+# 시스템 로그 한 달 보관
+sudo mkdir -p /etc/systemd/journald.conf.d
+sudo install -m 644 infra/host/journald/retention.conf /etc/systemd/journald.conf.d/retention.conf
+sudo systemctl restart systemd-journald
 ```
 
 ### 새 서버 구성 시 준비물 (git 에 없는 것)
