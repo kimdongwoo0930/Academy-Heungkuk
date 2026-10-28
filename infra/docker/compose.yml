@@ -97,9 +97,34 @@ services:
     depends_on:
       - backend
 
+  loki:
+    <<: *common
+    image: grafana/loki:3.4.2
+    container_name: loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ../loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+
+  alloy:
+    <<: *common
+    image: grafana/alloy:v1.21.2
+    container_name: alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    volumes:
+      - ../alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ../../logs:/var/log/app:ro      # spring 컨테이너와 같은 호스트 logs/ 를 읽기 전용으로
+      - alloy-data:/var/lib/alloy/data
+    depends_on:
+      - loki
+
 networks:
   hka-network:
     driver: bridge
 
 volumes:
+  loki-data:
+  alloy-data:
   mysql_data:

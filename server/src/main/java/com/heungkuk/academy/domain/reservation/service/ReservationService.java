@@ -13,7 +13,7 @@ import com.heungkuk.academy.domain.reservation.dto.response.ReservationResponse;
 public interface ReservationService {
 
     /** 예약 등록 (강의실·객실·식사 포함) */
-    ReservationResponse createReservation(ReservationRequest request);
+    ReservationResponse createReservation(ReservationRequest request,String  userId);
 
     /** 특정 날짜에 해당 강의실 사용 가능 여부 확인 */
     boolean checkClassroom(String classroom, LocalDate date);
@@ -32,11 +32,11 @@ public interface ReservationService {
     ReservationResponse getReservation(Long id);
 
     /** 예약 취소 (상태를 '취소'로 변경, 소프트 삭제) */
-    void deleteReservation(Long id);
+    void deleteReservation(Long id, String userId);
 
     /** 예약 영구 삭제 (하위 데이터 포함 DB에서 완전 제거) */
-    void hardDeleteReservation(Long id);
+    void hardDeleteReservation(Long id, String userId);
 
     /** 예약 수정 (기존 강의실·객실·식사 삭제 후 재등록) */
-    ReservationResponse updateReservation(Long id, ReservationRequest request);
+    ReservationResponse updateReservation(Long id, ReservationRequest request, String userId);
 }
