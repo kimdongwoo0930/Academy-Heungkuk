@@ -11,7 +11,9 @@
 infra/
 ├── compose.sh                    # docker compose 래퍼 — compose 파일 + 루트 .env 를 항상 함께 지정
 ├── docker/
-│   └── compose.yml               # 앱: db, backend, client, nginx + 공용 네트워크·볼륨
+│   └── compose.yml               # db, backend, client, nginx, loki, alloy + 공용 네트워크·볼륨
+├── alloy/config.alloy            # 로그 수집 — logs/*.log 를 읽어 Loki 로 전송 (운영·로컬 dev 공용)
+├── loki/loki-config.yaml         # 로그 저장·검색 — 보관 60일 (운영·로컬 dev 공용)
 ├── nginx/
 │   ├── conf.d/                   # nginx 가 파일 이름 순서대로 읽음 (번호 = 읽는 순서)
 │   │   ├── 00-common.conf            # server_tokens off
@@ -82,9 +84,15 @@ db 서비스 설정을 바꿨다면 배포 후 서버에서 직접 `infra/compos
 
 | 로그 | 위치 | 보관 | 설정 |
 | --- | --- | --- | --- |
-| Spring 로그 파일 | `logs/*.log` (app, error, auth, reservation, access) | 60일 (app 은 최대 1GB) | `server/src/main/resources/logback-spring.xml` `maxHistory` |
+| Spring 로그 파일 | `logs/*.log` (app, error, auth, reservation, survey, setting) | 60일 (app 은 최대 1GB) | `server/src/main/resources/logback-spring.xml` `maxHistory` |
+| Loki (로그 검색) | `loki-data` 볼륨 | 60일 | `infra/loki/loki-config.yaml` `retention_period` |
 | 서버 시스템 로그 | `/var/log/journal` | 한 달, 최대 500MB | `host/journald/retention.conf` |
 | 컨테이너 로그 (`docker logs`) | `/var/lib/docker/containers` | 컨테이너당 최대 30MB (10MB × 3, 보통 한 달치 이상) | `docker/compose.yml` `x-common.logging` — Docker 는 기간 기준 삭제를 지원하지 않아 크기로 제한 |
+
+Spring 로그 → Alloy → Loki 구조, 라벨·쿼리 예시, 로그 추가 방법은 [`docs/LOGGING.md`](../docs/LOGGING.md) 를 참고하세요.
+
+- **Loki · Alloy 는 배포 워크플로가 올리지 않습니다.** 서버에서 직접 `infra/compose.sh up -d loki alloy`, 설정 파일을 고친 뒤에는 `--force-recreate` 로 반영합니다.
+- Loki 는 `127.0.0.1:3100` 에만 열려 있고 인증이 없습니다. 조회는 SSH 터널(`ssh -N -L 3100:127.0.0.1:3100 <사용자>@<서버>`)로 하며, 포트를 외부에 열지 않습니다.
 
 ---
 

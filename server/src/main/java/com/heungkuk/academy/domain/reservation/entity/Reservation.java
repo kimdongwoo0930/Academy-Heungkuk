@@ -33,7 +33,7 @@ public class Reservation extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 예약 고유 코드 (자동 생성, 예: RES-20240101-001) */
+    /** 예약번호 (자동 생성, 예: HK-20260316-001). PK(id)와 별개이며, 설문 토큰 등 외부 참조에 사용 */
     @Column(name = "reservation_code", length = 20, unique = true, nullable = false)
     private String reservationCode;
 

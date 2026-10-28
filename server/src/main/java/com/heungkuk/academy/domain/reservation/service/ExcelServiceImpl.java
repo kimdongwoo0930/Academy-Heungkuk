@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.heungkuk.academy.global.entity.LogNames;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -49,7 +51,7 @@ import lombok.extern.slf4j.Slf4j;
  * 견적서(generateEstimate), 거래명세서(generateTrade), 전체 내보내기(exportAll), 전체 가져오기(importAll) 기능을 하나의 클래스로
  * 통합합니다.
  */
-@Slf4j
+@Slf4j(topic = LogNames.RESERVATION)
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -95,7 +97,7 @@ public class ExcelServiceImpl implements ExcelService {
      * 견적서 xlsx 생성 후 byte[] 반환. 템플릿: classpath:/templates/estimate_template.xlsx
      */
     @Override
-    public byte[] generateEstimate(Long reservationId) {
+    public byte[] generateEstimate(Long reservationId, String userId) {
         Reservation res = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
 
@@ -126,10 +128,11 @@ public class ExcelServiceImpl implements ExcelService {
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             wb.write(out);
+            log.info("견적서 생성 완료 reservationId={}, 생성자={}", reservationId, userId);
             return out.toByteArray();
 
         } catch (IOException e) {
-            log.error("견적서 생성 실패 reservationId={}", reservationId, e);
+            log.error("견적서 생성 실패 reservationId={} 생성자={}", reservationId, userId, e);
             throw new RuntimeException("견적서 생성 중 오류가 발생했습니다.");
         }
     }
@@ -412,7 +415,7 @@ public class ExcelServiceImpl implements ExcelService {
      * 거래명세서 xlsx 생성 후 byte[] 반환. 템플릿: classpath:/templates/trade_template.xlsx
      */
     @Override
-    public byte[] generateTrade(Long reservationId) {
+    public byte[] generateTrade(Long reservationId, String userId) {
         Reservation res = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
 
@@ -443,10 +446,11 @@ public class ExcelServiceImpl implements ExcelService {
             wb.setForceFormulaRecalculation(true);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             wb.write(out);
+            log.info("거래명세서 생성 성공 reservationId={} 생성자={}", reservationId, userId);
             return out.toByteArray();
 
         } catch (IOException e) {
-            log.error("거래명세서 생성 실패 reservationId={}", reservationId, e);
+            log.error("거래명세서 생성 실패 reservationId={} 생성자={}", reservationId, userId ,e);
             throw new RuntimeException("거래명세서 생성 중 오류가 발생했습니다.");
         }
     }
@@ -455,7 +459,7 @@ public class ExcelServiceImpl implements ExcelService {
      * 확인서 xlsx 생성 후 byte[] 반환.
      */
     @Override
-    public byte[] generateConfirmation(Long reservationId) {
+    public byte[] generateConfirmation(Long reservationId, String userId) {
         Reservation res = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
         List<RoomReservation> rooms = roomReservationRepository.findByReservation(res);
@@ -477,10 +481,11 @@ public class ExcelServiceImpl implements ExcelService {
                 wb.setForceFormulaRecalculation(true);
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 wb.write(out);
+                log.info("확인서 생성 성공 reservationId={} 생성자={}", reservationId, userId);
                 return out.toByteArray();
             }
         } catch (IOException e) {
-            log.error("확인서 생성 실패 reservationId={}", reservationId, e);
+            log.error("확인서 생성 실패 reservationId={} 생성자={}", reservationId,userId, e);
             throw new RuntimeException("확인서 생성 중 오류가 발생했습니다.");
         }
     }
@@ -770,7 +775,7 @@ public class ExcelServiceImpl implements ExcelService {
      */
     @Override
     @Transactional(readOnly = true)
-    public byte[] exportAll() {
+    public byte[] exportAll(String userId) {
         List<Reservation> reservations = reservationRepository.findAll();
         List<RoomReservation> rooms = roomReservationRepository.findAll();
         List<ClassroomReservation> classrooms = classroomReservationRepository.findAll();
@@ -789,7 +794,7 @@ public class ExcelServiceImpl implements ExcelService {
             return out.toByteArray();
 
         } catch (IOException e) {
-            log.error("Excel export 실패", e);
+            log.error("데이터 내보내기 실패 요청자={}", userId ,e);
             throw new RuntimeException("엑셀 생성 중 오류가 발생했습니다.");
         }
     }

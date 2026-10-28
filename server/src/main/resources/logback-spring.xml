@@ -77,6 +77,18 @@
         </rollingPolicy>
     </appender>
 
+    <!-- SETTING -->
+    <appender name="SETTING_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/setting.log</file>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/setting.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+    </appender>
+
     <!-- 주제별 로거 (전 프로파일 공통) -->
     <logger name="AUTH" level="INFO" additivity="true">
         <appender-ref ref="AUTH_FILE"/>
@@ -87,6 +99,9 @@
     <logger name="SURVEY" level="INFO" additivity="true">
         <appender-ref ref="SURVEY_FILE"/>
     </logger>
+    <logger name="SETTING" level="INFO" additivity="false">
+        <appender-ref ref="SETTING_FILE"/>
+    </logger>
 
     <!-- 프로파일별 root -->
     <springProfile name="local,dev">
@@ -96,7 +111,7 @@
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
         </root>
-        <logger name="com.yourpackage" level="DEBUG"/>
+        <logger name="com.heungkuk.academy" level="DEBUG"/>
     </springProfile>
 
     <springProfile name="prod,docker">

@@ -1,5 +1,32 @@
 # CHANGELOG
 
+
+## [4.1.0] - 2026-10-28
+
+### Added
+
+- **로그 검색 시스템 (Loki + Alloy)** — 서버 로그 파일을 Loki 에 모아 InfraDesk에서 검색 (SSH 터널 접속, 외부 비공개)
+- **기능별 로그 파일 분리** — 인증 · 예약 · 설문 · 설정 로그를 각각 `auth.log` `reservation.log` `survey.log` `setting.log` 로 기록
+- **작업자 기록** — 아래 작업을 누가 했는지 로그에 남김
+  - 예약 생성 · 수정 · 취소 · 영구 삭제
+  - 견적서 · 거래명세서 · 확인서 생성, 데이터 내보내기
+  - 설정 변경 (변경 전 → 후 값 함께 기록), 강의실 · 숙소 사용불가 변경
+  - 설문 링크 생성, 설문 응답 제출, 계정 생성
+- 로그 시스템 문서 추가 (`docs/LOGGING.md`)
+
+### Changed
+
+- **로그 보관 기간 60일로 통일** — Spring 로그 파일 30일 → 60일, Loki 로그 검색 30일 → 60일
+- nginx 접속 로그를 JSON 파일 대신 기본 형식으로 변경 — `docker logs hka-nginx` 로 확인 (컨테이너당 최대 30MB)
+- 인프라 compose 를 파일 하나로 통합 (모니터링 compose 파일 제거)
+
+### Removed
+
+- **Grafana · Prometheus · Promtail · node-exporter · cAdvisor 모니터링 스택 제거** (`grafana.academy-hk.com` 접속 설정, 대시보드, 관련 문서 포함)
+- `/actuator/health`, `/actuator/prometheus` 엔드포인트 삭제 (Actuator 의존성 제거) — 외부 공개 API 는 `/v1/auth/**`, `/v1/survey/**` 만 남음
+
+---
+
 ## [4.0.2] - 2026-09-27
 
 ### Changed

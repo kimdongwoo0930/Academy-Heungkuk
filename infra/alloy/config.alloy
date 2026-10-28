@@ -1,0 +1,28 @@
+local.file_match "spring" {
+  path_targets = [
+    { __path__ = "/var/log/app/app.log",         job = "spring", type = "app" },
+    { __path__ = "/var/log/app/error.log",       job = "spring", type = "error" },
+    { __path__ = "/var/log/app/auth.log",        job = "spring", type = "auth" },
+    { __path__ = "/var/log/app/reservation.log", job = "spring", type = "reservation" },
+    { __path__ = "/var/log/app/survey.log",      job = "spring", type = "survey" },
+    { __path__ = "/var/log/app/setting.log",      job = "spring", type = "setting" },
+  ]
+}
+
+loki.source.file "spring" {
+  targets    = local.file_match.spring.targets
+  forward_to = [loki.process.spring.receiver]
+}
+
+loki.process "spring" {
+  stage.multiline {
+    firstline = "^\\d{4}-\\d{2}-\\d{2} "
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

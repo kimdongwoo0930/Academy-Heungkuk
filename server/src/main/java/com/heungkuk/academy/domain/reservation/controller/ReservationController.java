@@ -2,6 +2,7 @@ package com.heungkuk.academy.domain.reservation.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,14 +29,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 
 @Tag(name = "예약 관리", description = "예약 등록 / 조회 / 수정 / 삭제 API (관리자 전용)")
 @SecurityRequirement(name = "Bearer")
 @RestController
 @RequestMapping("/v1/admin/reservations")
-@Slf4j
 @RequiredArgsConstructor
 public class ReservationController {
 
@@ -45,9 +45,11 @@ public class ReservationController {
         @Operation(summary = "예약 등록", description = "객실, 강의실, 식사 정보를 함께 등록합니다.")
         @PostMapping
         public ResponseEntity<CommonResponse<ReservationResponse>> createReservation(
-                        @RequestBody @Valid ReservationRequest request) {
+                        @RequestBody @Valid ReservationRequest request,
+                        @AuthenticationPrincipal String userId
+        ) {
                 return ResponseEntity.status(201).body(CommonResponse
-                                .success(reservationService.createReservation(request)));
+                                .success(reservationService.createReservation(request, userId)));
         }
 
         // ── 조회 ──────────────────────────────────────────────────────────────
@@ -57,7 +59,8 @@ public class ReservationController {
         @GetMapping
         public ResponseEntity<CommonResponse<List<ReservationResponse>>> getReservationsByYear(
                         @Parameter(description = "조회 연도",
-                                        example = "2026") @RequestParam int year) {
+                                        example = "2026") @RequestParam int year
+                        ) {
                 return ResponseEntity.ok(CommonResponse
                                 .success(reservationService.getReservationsByYear(year)));
         }
@@ -109,9 +112,11 @@ public class ReservationController {
         @PutMapping("/{id}")
         public ResponseEntity<CommonResponse<ReservationResponse>> updateReservation(
                         @Parameter(description = "예약 ID", example = "1") @PathVariable Long id,
-                        @RequestBody @Valid ReservationRequest request) {
+                        @RequestBody @Valid ReservationRequest request,
+                        @AuthenticationPrincipal String userId
+        ) {
                 return ResponseEntity.ok(CommonResponse
-                                .success(reservationService.updateReservation(id, request)));
+                                .success(reservationService.updateReservation(id, request, userId)));
         }
 
         // ── 삭제 ──────────────────────────────────────────────────────────────
@@ -119,16 +124,20 @@ public class ReservationController {
         @Operation(summary = "예약 취소", description = "상태를 '취소'로 변경합니다. (소프트 삭제)")
         @DeleteMapping("/{id}")
         public ResponseEntity<Void> deleteReservation(
-                        @Parameter(description = "예약 ID", example = "1") @PathVariable Long id) {
-                reservationService.deleteReservation(id);
+                        @Parameter(description = "예약 ID", example = "1") @PathVariable Long id,
+                        @AuthenticationPrincipal String userId
+        ) {
+                reservationService.deleteReservation(id, userId);
                 return ResponseEntity.status(204).build();
         }
 
         @Operation(summary = "예약 영구 삭제", description = "하위 데이터(강의실/객실/식사)까지 DB에서 완전 삭제합니다.")
         @DeleteMapping("/{id}/hard")
         public ResponseEntity<Void> hardDeleteReservation(
-                        @Parameter(description = "예약 ID", example = "1") @PathVariable Long id) {
-                reservationService.hardDeleteReservation(id);
+                        @Parameter(description = "예약 ID", example = "1") @PathVariable Long id,
+                        @AuthenticationPrincipal String userId
+        ) {
+                reservationService.hardDeleteReservation(id, userId);
                 return ResponseEntity.status(204).build();
         }
 
