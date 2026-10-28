@@ -1,6 +1,6 @@
 # 🏗️ 인프라 (infra/)
 
-> 운영 서버(Oracle Cloud, 춘천 리전)에서 쓰는 docker compose · nginx 설정을 모아둔 폴더입니다.
+> 운영 서버에서 쓰는 docker compose · nginx 설정을 모아둔 폴더입니다.
 > 앱 코드와 Dockerfile 은 `server/`, `client/` 에 있습니다.
 
 ---
@@ -28,30 +28,10 @@ infra/
 │   │   ├── proxy-upgrade.conf        # WebSocket 업그레이드 헤더
 │   │   ├── hsts.conf                 # HSTS
 │   │   └── security-headers.conf     # 프론트 보안 헤더 (hsts + 4개)
-│   └── ssl/                      # Cloudflare Origin 인증서 (gitignore — 서버에만 존재)
+│   └── ssl/                      # Cloudflare Origin 인증서 
 └── host/
     └── journald/retention.conf   # 서버 OS 시스템 로그 보관 설정 (배포로 적용 안 됨 — 아래 "서버 OS 설정")
 ```
-
-저장소 루트에 남는 것: `.env`(비밀값, gitignore), `CHANGELOG.md`(프론트 변경 이력 화면이 읽음)
-
----
-
-## 실행
-
-항상 **래퍼 `infra/compose.sh`** 로 실행합니다 (어느 폴더에서 실행해도 됨).
-
-```bash
-infra/compose.sh ps
-infra/compose.sh logs --tail=100 backend
-infra/compose.sh up -d <서비스>
-```
-
-- 래퍼 = `docker compose -f infra/docker/compose.yml --env-file .env`
-- compose 안의 상대 경로는 `infra/docker/` 기준, 공통 설정(restart, network)은 `x-common` 앵커로 묶음
-- 프로젝트 이름은 compose 파일에 `name: academy-heungkuk-v2-` 로 고정 — 폴더를 옮겨도 볼륨(`academy-heungkuk-v2-_mysql_data` 등)·네트워크 이름이 바뀌지 않게 하기 위함. **지우면 DB 가 빈 새 볼륨에 붙습니다.**
-
----
 
 ## 배포 (GitHub Actions — `.github/workflows/deploy.yml`)
 
@@ -63,20 +43,7 @@ infra/compose.sh up -d <서비스>
 5. `nginx -s reload` — nginx 설정 변경 반영 (연결 끊김 없음)
 6. 안 쓰는 이미지 정리 — 어떤 컨테이너도 쓰지 않고 만든 지 7일 지난 이미지 삭제 (`docker image prune -af --filter until=168h`)
 
-db 서비스 설정을 바꿨다면 배포 후 서버에서 직접 `infra/compose.sh up -d <서비스>` 로 반영합니다.
-
----
-
-## 네트워크 · 보안 구성
-
-| 구간 | 설정 |
-| --- | --- |
-| DNS | `academy-hk.com`, `www`, `api` 모두 Cloudflare 프록시(주황 구름) |
-| Cloudflare | SSL **Full (strict)**, **Always Use HTTPS** 켬, 국가 제한(대한민국) |
-| Oracle 보안 목록 (Default Security List) | **80 / 443 은 Cloudflare IPv4 대역만 허용**, 22(SSH)는 전체 허용 (GitHub Actions 배포용) |
-| 서버 방화벽(iptables) | Oracle 우분투 기본값 유지 |
-| nginx | 등록 도메인 외 요청 거부(default_server), 보안 헤더, 업로드 10MB |
-| 외부 공개 포트 | nginx 80 / 443 뿐 (spring 8888, db 3306 은 내부 네트워크 전용) |
+다른 서비스가 바꿨다면 배포 후 서버에서 직접 `infra/compose.sh up -d <서비스>` 로 반영합니다.
 
 ---
 
@@ -93,41 +60,3 @@ Spring 로그 → Alloy → Loki 구조, 라벨·쿼리 예시, 로그 추가 �
 
 - **Loki · Alloy 는 배포 워크플로가 올리지 않습니다.** 서버에서 직접 `infra/compose.sh up -d loki alloy`, 설정 파일을 고친 뒤에는 `--force-recreate` 로 반영합니다.
 - Loki 는 `127.0.0.1:3100` 에만 열려 있고 인증이 없습니다. 조회는 SSH 터널(`ssh -N -L 3100:127.0.0.1:3100 <사용자>@<서버>`)로 하며, 포트를 외부에 열지 않습니다.
-
----
-
-## 자주 하는 작업
-
-### nginx 설정 변경
-`infra/nginx/conf.d/`(서버 블록) 또는 `snippets/`(공통 조각) 수정 → main 배포 시 자동 검사·반영.
-- 도메인 추가: `conf.d/` 에 번호를 붙인 파일 하나 추가 + `20-http-redirect.conf` 의 server_name 에 추가
-- 주의: `location` 안에서 `add_header` 를 쓰면 server 단위 보안 헤더가 전부 무시됨 — 보안 헤더는 server 단위 include 로만
-서버에서 바로 반영하려면: `docker exec hka-nginx nginx -t && docker exec hka-nginx nginx -s reload`
-
-### Cloudflare IP 목록 갱신 (드묾 — Cloudflare 가 대역을 바꿀 때)
-목록: https://www.cloudflare.com/ips/ — **두 곳을 같이** 바꿉니다.
-1. `infra/nginx/conf.d/01-cloudflare-realip.conf` 의 `set_real_ip_from`
-2. Oracle 보안 목록 수신 규칙 (80, 443) — Oracle Cloud Shell 에서 Cloudflare 목록을 받아 수신 규칙 전체를 한 번에 교체
-
-### 외부 이미지 버전 올리기
-`infra/docker/compose.yml` 의 태그 변경 → 배포 후 서버에서 `infra/compose.sh pull <서비스> && infra/compose.sh up -d <서비스>`
-
-### 앱 롤백
-서버 `.env` 에 이전 커밋 SHA 태그 지정 후 재생성:
-```bash
-BACKEND_IMAGE=ghcr.io/kimdongwoo0930/heungkuk-backend:<SHA>
-CLIENT_IMAGE=ghcr.io/kimdongwoo0930/heungkuk-client:<SHA>
-infra/compose.sh up -d --no-deps backend client
-```
-
-### 서버 OS 설정 (배포로 적용되지 않음 — 새 서버에서 한 번)
-```bash
-# 시스템 로그 한 달 보관
-sudo mkdir -p /etc/systemd/journald.conf.d
-sudo install -m 644 infra/host/journald/retention.conf /etc/systemd/journald.conf.d/retention.conf
-sudo systemctl restart systemd-journald
-```
-
-### 새 서버 구성 시 준비물 (git 에 없는 것)
-- 저장소 루트 `.env` — DB · JWT_SECRET 값
-- `infra/nginx/ssl/origin.pem`, `origin.key` (Cloudflare → SSL/TLS → Origin Server 에서 발급, key 는 `chmod 600`)
