@@ -5,7 +5,7 @@ local.file_match "spring" {
     { __path__ = "/var/log/app/auth.log",        job = "spring", type = "auth" },
     { __path__ = "/var/log/app/reservation.log", job = "spring", type = "reservation" },
     { __path__ = "/var/log/app/survey.log",      job = "spring", type = "survey" },
-    { __path__ = "/var/log/app/setting.log",      job = "spring", type = "setting" },
+    { __path__ = "/var/log/app/setting.log",     job = "spring", type = "setting" },
   ]
 }
 
