@@ -9,10 +9,10 @@ import com.heungkuk.academy.domain.account.dto.response.SignupResponse;
 public interface AccountService {
 
     /** 계정 생성 (관리자가 직접 등록, 즉시 활성화) */
-    SignupResponse createAccount(SignupRequest request);
+    SignupResponse createAccount(SignupRequest request, String userId);
 
     /** 전체 계정 목록 조회 */
-    List<AccountResponse> getAccounts();
+    List<AccountResponse> getAccounts(String userId);
 
     /** 계정 삭제 */
     void deleteAccount(Long id);

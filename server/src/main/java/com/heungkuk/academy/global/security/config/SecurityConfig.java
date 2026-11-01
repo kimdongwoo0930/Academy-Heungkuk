@@ -61,8 +61,7 @@ public class SecurityConfig {
                         auth.requestMatchers(SWAGGER_PATHS).permitAll();
                     }
                     auth
-                        .requestMatchers("/v1/auth/**", "/v1/survey/**",
-                                "/actuator/health", "/actuator/prometheus")
+                        .requestMatchers("/v1/auth/**", "/v1/survey/**")
                         .permitAll()
                         // Excel 다운로드/내보내기/가져오기는 ROLE_ADMIN만 가능
                         .requestMatchers(HttpMethod.GET,

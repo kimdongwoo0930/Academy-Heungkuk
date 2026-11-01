@@ -13,7 +13,7 @@ import com.heungkuk.academy.domain.survey.dto.response.SurveyTokenResponse;
 public interface SurveyService {
 
     /** 설문 URL 생성 (UUID 토큰 발급, 관리자용) */
-    SurveyTokenResponse createUrl(String reservationId);
+    SurveyTokenResponse createUrl(String reservationId, String userId);
 
     /** 설문 응답 제출 (고객용, 인증 불필요) */
     void saveSurvey(String token, SurveyRequest surveyRequest);

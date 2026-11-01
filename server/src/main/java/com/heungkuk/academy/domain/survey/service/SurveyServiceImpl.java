@@ -2,8 +2,13 @@ package com.heungkuk.academy.domain.survey.service;
 
 
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 
+import ch.qos.logback.core.spi.ErrorCodes;
+import com.heungkuk.academy.global.entity.LogNames;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j(topic = LogNames.SURVEY)
 public class SurveyServiceImpl implements SurveyService {
 
     private final SurveyRepository surveyRepository;
@@ -41,7 +47,13 @@ public class SurveyServiceImpl implements SurveyService {
     // - 생성된 토큰 URL 반환
     @Override
     @Transactional
-    public SurveyTokenResponse createUrl(String reservationId) {
+    public SurveyTokenResponse createUrl(String reservationId, String userId) {
+        Reservation reservation = reservationRepository.findByReservationCode(reservationId).orElseThrow(() -> {
+            log.warn("설문 토큰 생성 실패 - 존재하지 않는 예약번호 예약번호={} 생성자={}",
+                    reservationId, userId);
+            return new BusinessException(ErrorCode.RESERVATION_NOT_FOUND);
+        });
+
         String token;
         do {
             token = UUID.randomUUID().toString();
@@ -49,6 +61,8 @@ public class SurveyServiceImpl implements SurveyService {
 
         SurveyToken surveyToken = SurveyToken.of(reservationId, token);
         surveyTokenRepository.save(surveyToken);
+
+        log.info("설문 토큰 생성 완료, 업체={}, 생성자={}",reservation.getOrganization(), userId);
 
         // SurveyTokenResponse Dto 로 만들어서 보내주기
         return SurveyTokenResponse.from(surveyToken);
@@ -62,13 +76,19 @@ public class SurveyServiceImpl implements SurveyService {
     @Transactional
     public void saveSurvey(String token, SurveyRequest surveyRequest) {
         SurveyToken surveyToken = surveyTokenRepository.findByToken(token)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SURVEY_TOKEN_NOT_FOUND));
+                .orElseThrow(() -> {
+                    log.warn("설문 저장 실패 - 존재하지 않는 설문 토큰 토큰={}", token);
+                    return new BusinessException(ErrorCode.SURVEY_TOKEN_NOT_FOUND);
+                });
 
         if (surveyToken.getIsUsed()) {
+            log.warn("설문 저장 실패 - 이미 완료된 설문입니다. 예약 번호={}",
+                    surveyToken.getReservationId());
             throw new BusinessException(ErrorCode.SURVEY_ALREADY_SUBMITTED);
         }
 
         surveyRepository.save(Survey.of(surveyToken, surveyRequest));
+        log.info("설문 조사 완료 예약번호={}", surveyToken.getReservationId());
         surveyToken.updateIsUsed();
     }
 

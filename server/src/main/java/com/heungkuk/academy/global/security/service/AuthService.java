@@ -2,6 +2,8 @@ package com.heungkuk.academy.global.security.service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import com.heungkuk.academy.global.entity.LogNames;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,7 +21,7 @@ import com.heungkuk.academy.global.security.jwt.TokenHashUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
+@Slf4j(topic = LogNames.AUTH)
 @Service
 @Transactional
 @RequiredArgsConstructor

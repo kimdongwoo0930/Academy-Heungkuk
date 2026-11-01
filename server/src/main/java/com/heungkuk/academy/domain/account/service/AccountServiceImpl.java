@@ -2,6 +2,8 @@ package com.heungkuk.academy.domain.account.service;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.heungkuk.academy.global.entity.LogNames;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +19,7 @@ import com.heungkuk.academy.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
+@Slf4j(topic = LogNames.AUTH)
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -30,14 +32,14 @@ public class AccountServiceImpl implements AccountService {
     // 관리자가 계정 생성 (state=true, 즉시 활성화)
     @Override
     @Transactional
-    public SignupResponse createAccount(SignupRequest request) {
+    public SignupResponse createAccount(SignupRequest request, String userId) {
         if (accountRepository.existsByUserId(request.getUserId())) {
             throw new BusinessException(ErrorCode.DUPLICATE_USER_ID);
         }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         Account account = Account.fromAdmin(request, encodedPassword);
         accountRepository.save(account);
-        log.info("계정 생성: userId={}, username={}, role={}", account.getUserId(), account.getUsername(), account.getRole());
+        log.info("계정 생성: userId={}, username={}, role={}, 생성자 = {}", account.getUserId(), account.getUsername(), account.getRole(), userId);
         return SignupResponse.of(account);
     }
 
@@ -47,8 +49,9 @@ public class AccountServiceImpl implements AccountService {
      * @return List<AccountResponse>
      */
     @Override
-    public List<AccountResponse> getAccounts() {
+    public List<AccountResponse> getAccounts(String userId) {
         List<Account> accounts = accountRepository.findAll();
+        log.info("계정 전체 조회  : 요청자 = {}",  userId);
         List<AccountResponse> response = new ArrayList<>();
         for (Account a : accounts) {
             response.add(AccountResponse.of(a));

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,8 +48,10 @@ public class ExcelController {
     @Operation(summary = "견적서 다운로드")
     @GetMapping("/{id}/estimate")
     public ResponseEntity<byte[]> downloadEstimate(
-            @Parameter(description = "예약 ID") @PathVariable Long id) {
-        byte[] bytes = excelService.generateEstimate(id);
+            @Parameter(description = "예약 ID") @PathVariable Long id,
+            @AuthenticationPrincipal String userId
+    ) {
+        byte[] bytes = excelService.generateEstimate(id, userId);
         String org = reservationService.getReservation(id).getOrganization();
         return xlsxResponse(bytes, "흥국생명용인연수원_견적서_" + org);
     }
@@ -56,8 +59,10 @@ public class ExcelController {
     @Operation(summary = "거래명세서 다운로드")
     @GetMapping("/{id}/trade")
     public ResponseEntity<byte[]> downloadTrade(
-            @Parameter(description = "예약 ID") @PathVariable Long id) {
-        byte[] bytes = excelService.generateTrade(id);
+            @Parameter(description = "예약 ID") @PathVariable Long id,
+            @AuthenticationPrincipal String userId
+    ) {
+        byte[] bytes = excelService.generateTrade(id, userId);
         String org = reservationService.getReservation(id).getOrganization();
         return xlsxResponse(bytes, "흥국생명용인연수원_거래명세서_" + org);
     }
@@ -65,16 +70,20 @@ public class ExcelController {
     @Operation(summary = "확인서 다운로드")
     @GetMapping("/{id}/confirmation")
     public ResponseEntity<byte[]> downloadConfirmation(
-            @Parameter(description = "예약 ID") @PathVariable Long id) {
-        byte[] bytes = excelService.generateConfirmation(id);
+            @Parameter(description = "예약 ID") @PathVariable Long id,
+            @AuthenticationPrincipal String userId
+    ) {
+        byte[] bytes = excelService.generateConfirmation(id, userId);
         String org = reservationService.getReservation(id).getOrganization();
         return xlsxResponse(bytes, "흥국생명용인연수원_확인서_" + org);
     }
 
     @Operation(summary = "예약 데이터 Excel 내보내기")
     @GetMapping("/export")
-    public ResponseEntity<byte[]> exportReservations() {
-        return xlsxResponse(excelService.exportAll(), "reservations_export");
+    public ResponseEntity<byte[]> exportReservations(
+            @AuthenticationPrincipal String userId
+    ) {
+        return xlsxResponse(excelService.exportAll(userId), "reservations_export");
     }
 
     @Operation(summary = "예약 데이터 Excel 가져오기")

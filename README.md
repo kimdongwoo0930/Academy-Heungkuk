@@ -1,4 +1,4 @@
-# 🏨 흥국생명 연수원 관리 시스템 v2.0
+# 🏨 흥국생명 연수원 관리 시스템 
 
 > 전화로 접수된 예약을 입력·관리하는 **연수원 내부 관리 시스템**
 
@@ -9,8 +9,8 @@
 | 항목       | 내용                        |
 | ---------- | --------------------------- |
 | 프로젝트명 | 흥국생명 연수원 관리 시스템 |
-| 버전       | 4.0.0 Release               |
-| 사용 대상  | 연수원 직원                 |
+| 버전       | 3.1.2 Release               |
+| 사용 대상  | 연수원 직원들                 |
 
 ---
 
@@ -44,10 +44,8 @@
 | 서버              | Oracle Cloud ARM         |
 | 컨테이너          | Docker / docker-compose  |
 | 리버스 프록시     | NGINX                    |
-| 로그 수집         | Promtail → Loki          |
-| 메트릭 수집       | node-exporter / cAdvisor |
-| 메트릭 저장       | Prometheus               |
-| 모니터링 대시보드 | Grafana                  |
+| 로그 수집·검색    | Alloy → Loki             |
+| 모니터링    | [InfraDesk](https://github.com/kimdongwoo0930/infra-desk) |
 
 ---
 
@@ -55,8 +53,8 @@
 
 | 역할         | 설명      | 권한                            |
 | ------------ | --------- | ------------------------------- |
-| `ROLE_ADMIN` | 관리자    | 모든 기능 + 계정 관리           |
-| `ROLE_USER`  | 일반 직원 | 예약 조회·수정 (계정 관리 불가) |
+| `ROLE_ADMIN` | 관리자    | 모든 기능 + 계정 관리   + 예약 (추가, 수정)         |
+| `ROLE_USER`  | 일반 직원 | 예약 조회 |
 
 ---
 
@@ -67,7 +65,7 @@
 | API 명세  | 전체 엔드포인트 및 요청/응답 구조     | [docs/API.md](docs/API.md)                   |
 | 기능 명세 | 도메인별 기능 목록 및 구현 상태       | [docs/FEATURES.md](docs/FEATURES.md)         |
 | 변경 이력 | 버전별 업데이트 내역                  | [CHANGELOG.md](CHANGELOG.md)                 |
-| 모니터링  | 로그·메트릭 구성, 쿼리 예시, 대시보드 | [docs/Grafana-Loki.md](docs/Grafana-Loki.md) |
 | 보안, 인가 구조 | 서버 보안및 인가 방식 구조 설명 | [docs/Security.md](docs/Security.md) |
+| 로그 시스템 | 로그 파일 구조, Alloy · Loki 수집, 조회 방법 | [docs/LOGGING.md](docs/LOGGING.md) |
 
 ---

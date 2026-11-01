@@ -7,17 +7,17 @@ import com.heungkuk.academy.domain.reservation.dto.response.ImportResult;
 public interface ExcelService {
 
     /** 견적서 xlsx 생성 (템플릿 기반, 예약 ID 기준) */
-    byte[] generateEstimate(Long reservationId);
+    byte[] generateEstimate(Long reservationId, String userId);
 
     /** 전체 예약 데이터 xlsx 내보내기 */
-    byte[] exportAll();
+    byte[] exportAll(String userId);
 
     /** xlsx 파일 업로드로 예약 데이터 일괄 등록·수정 (예약 코드 기준) */
     ImportResult importAll(MultipartFile file);
 
     /** 거래명세서 xlsx 생성 (템플릿 기반, 예약 ID 기준) */
-    byte[] generateTrade(Long reservationId);
+    byte[] generateTrade(Long reservationId, String userId);
 
     /** 확인서 xlsx 생성 (예약 ID 기준) */
-    byte[] generateConfirmation(Long reservationId);
+    byte[] generateConfirmation(Long reservationId, String userId);
 }

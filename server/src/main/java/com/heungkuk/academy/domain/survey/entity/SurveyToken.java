@@ -25,6 +25,7 @@ public class SurveyToken extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Reservation.reservationCode(예약번호) 값. Reservation PK(id)가 아니며 FK 제약도 없음 */
     @Column(name = "reservation_id", nullable = false)
     private String reservationId;
 

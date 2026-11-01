@@ -5,6 +5,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.heungkuk.academy.global.entity.LogNames;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +30,7 @@ import com.heungkuk.academy.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
+@Slf4j(topic = LogNames.RESERVATION)
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -44,7 +46,7 @@ public class ReservationServiceImpl implements ReservationService {
          */
         @Override
         @Transactional
-        public ReservationResponse createReservation(ReservationRequest request) {
+        public ReservationResponse createReservation(ReservationRequest request,String userId) {
 
                 // 1. 예약 코드 생성 (HK-20260316-001)
                 String reservationCode = generateReservationCode(request.getStartDate());
@@ -62,9 +64,9 @@ public class ReservationServiceImpl implements ReservationService {
                 // 5. 식사 예약 저장
                 saveMeals(reservation, request);
 
-                log.info("예약 생성: code={}, organization={}, period={} ~ {}", reservationCode,
+                log.info("예약 생성: code={}, organization={}, period={} ~ {}, 생성자={}", reservationCode,
                                 request.getOrganization(), request.getStartDate(),
-                                request.getEndDate());
+                                request.getEndDate(), userId);
                 return toResponse(reservation);
         }
 
@@ -113,12 +115,12 @@ public class ReservationServiceImpl implements ReservationService {
          */
         @Override
         @Transactional
-        public void deleteReservation(Long id) {
+        public void deleteReservation(Long id,String userId) {
                 Reservation reservation = reservationRepository.findById(id).orElseThrow(
                                 () -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
                 reservation.updateStatus("취소");
-                log.info("예약 취소: id={}, code={}, organization={}", id,
-                                reservation.getReservationCode(), reservation.getOrganization());
+                log.info("예약 취소: id={}, code={}, organization={}, 요청자={}", id,
+                                reservation.getReservationCode(), reservation.getOrganization(),userId);
         }
 
         /**
@@ -126,15 +128,15 @@ public class ReservationServiceImpl implements ReservationService {
          */
         @Override
         @Transactional
-        public void hardDeleteReservation(Long id) {
+        public void hardDeleteReservation(Long id, String userId) {
                 Reservation reservation = reservationRepository.findById(id).orElseThrow(
                                 () -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
                 roomReservationRepository.deleteByReservation(reservation);
                 classroomReservationRepository.deleteByReservation(reservation);
                 mealReservationRepository.deleteByReservation(reservation);
                 reservationRepository.delete(reservation);
-                log.info("예약 영구 삭제: id={}, code={}, organization={}", id,
-                                reservation.getReservationCode(), reservation.getOrganization());
+                log.info("예약 영구 삭제: id={}, code={}, organization={}, 요청자={}", id,
+                                reservation.getReservationCode(), reservation.getOrganization(), userId);
         }
 
         /**
@@ -142,7 +144,7 @@ public class ReservationServiceImpl implements ReservationService {
          */
         @Override
         @Transactional
-        public ReservationResponse updateReservation(Long id, ReservationRequest request) {
+        public ReservationResponse updateReservation(Long id, ReservationRequest request, String userId) {
                 Reservation reservation = reservationRepository.findById(id).orElseThrow(
                                 () -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
 
@@ -157,8 +159,8 @@ public class ReservationServiceImpl implements ReservationService {
                 saveMeals(reservation, request);
 
                 reservation.update(request);
-                log.info("예약 수정: id={}, code={}, organization={}", id,
-                                reservation.getReservationCode(), request.getOrganization());
+                log.info("예약 수정: id={}, code={}, organization={}, 수정자={}", id,
+                                reservation.getReservationCode(), request.getOrganization(), userId);
                 return toResponse(reservation);
         }
 

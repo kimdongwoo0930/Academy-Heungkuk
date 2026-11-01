@@ -39,23 +39,26 @@ public class AccountController {
     @Operation(summary = "계정 생성", description = "관리자가 새 계정을 생성합니다. 생성된 계정은 즉시 활성화됩니다.", hidden = true)
     @PostMapping
     public ResponseEntity<CommonResponse<SignupResponse>> createAccount(
-            @RequestBody SignupRequest request) {
-        return ResponseEntity.ok(CommonResponse.success(accountService.createAccount(request)));
+            @RequestBody SignupRequest request,
+            @AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(CommonResponse.success(accountService.createAccount(request, userId)));
     }
 
     @Operation(summary = "계정 목록 조회", description = "전체 직원 계정 목록을 반환합니다.")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "조회 성공"),
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "인증 실패 (토큰 없음 또는 만료)"),
             @ApiResponse(responseCode = "403", description = "접근 권한 없음")})
     @GetMapping
-    public ResponseEntity<CommonResponse<List<AccountResponse>>> getAccounts() {
-        return ResponseEntity.ok(CommonResponse.success(accountService.getAccounts()));
+    public ResponseEntity<CommonResponse<List<AccountResponse>>> getAccounts(@AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(CommonResponse.success(accountService.getAccounts(userId)));
     }
 
     @Operation(summary = "권한 변경",
             description = "계정의 role을 변경합니다. role 변경 시 state(승인 여부)가 자동으로 true로 설정됩니다.\n\n"
                     + "- `ROLE_ADMIN`: 관리자\n" + "- `ROLE_USER`: 일반 직원")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "권한 변경 성공"),
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "권한 변경 성공"),
             @ApiResponse(responseCode = "404", description = "계정을 찾을 수 없음"),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "403", description = "접근 권한 없음")})
