@@ -214,6 +214,25 @@ public class Reservation extends BaseTimeEntity {
                 .memo(memo != null && memo.isBlank() ? null : memo).build();
     }
 
+    /** Excel import 전용 — 기본 열 외의 단체·담당자·정산 정보 반영 (빈 값은 null) */
+    public void updateImportExtras(String companyZipCode, String businessNumber, String ceoName,
+            String siteManagerPhone2, String siteManagerEmail, String billingManager,
+            String billingManagerPhone, String billingManagerEmail, String paymentMethod) {
+        this.companyZipCode = blankToNull(companyZipCode);
+        this.businessNumber = blankToNull(businessNumber);
+        this.ceoName = blankToNull(ceoName);
+        this.siteManagerPhone2 = blankToNull(siteManagerPhone2);
+        this.siteManagerEmail = blankToNull(siteManagerEmail);
+        this.billingManager = blankToNull(billingManager);
+        this.billingManagerPhone = blankToNull(billingManagerPhone);
+        this.billingManagerEmail = blankToNull(billingManagerEmail);
+        this.paymentMethod = blankToNull(paymentMethod);
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s;
+    }
+
     /** Excel import 전용 — 기존 예약 필드 업데이트 */
     public void updateFromImport(String organization, String purpose, Integer people,
             String customer, String customerPhone, String customerPhone2, String customerEmail,

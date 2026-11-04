@@ -1,12 +1,12 @@
 "use client";
 
-import DashboardListModal from "@/components/dashboard/DashboardListModal";
 import KpiCard from "@/components/dashboard/KpiCard";
-import MonthlyChart from "@/components/dashboard/MonthlyChart";
-import RecentSurveyTable from "@/components/dashboard/RecentSurveyTable";
 import RoomStatus from "@/components/dashboard/RoomStatus";
-import SatisfactionBar from "@/components/dashboard/SatisfactionBar";
-import TodaySchedule from "@/components/dashboard/TodaySchedule";
+import SatisfactionSummary from "@/components/dashboard/SatisfactionSummary";
+import TodayLodging from "@/components/dashboard/TodayLodging";
+import TodayMeals from "@/components/dashboard/TodayMeals";
+import UpcomingWeek from "@/components/dashboard/UpcomingWeek";
+import ReservationDetailModal from "@/components/dashboard/ReservationDetailModal";
 import ReservationModal from "@/components/reservation/ReservationModal";
 import { getDashboard } from "@/lib/api/dashboard";
 import {
@@ -17,49 +17,88 @@ import {
   updateReservation,
 } from "@/lib/api/reservation";
 import { getDisabledClassrooms } from "@/lib/api/settings";
+import { isAdmin } from "@/lib/utils/auth";
+import {
+  addDays,
+  buildUpcomingDays,
+  countUpcomingBookings,
+  formatMonthDay,
+  parseDateStr,
+  summarizeTodayLodging,
+  summarizeTodayMeals,
+  toDateStr,
+} from "@/lib/utils/dashboard";
 import { DashboardData } from "@/types/dashboard";
 import { Reservation } from "@/types/reservation";
-import { useCallback, useEffect, useState } from "react";
+import { CalendarClock, Star, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
-
-interface ListModal {
-  title: string;
-  items: Reservation[];
-}
 
 interface EditModal {
   reservation: Reservation;
   allReservations: Reservation[];
+  initialTab?: "숙박";
 }
 
-const isActiveReservation = (reservation: Reservation) =>
-  reservation.status !== "취소";
+interface DetailModal {
+  reservation: Reservation;
+}
+
+const UPCOMING_DAYS = 7;
 
 export default function DashboardPage() {
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
+  const todayStr = toDateStr(today);
+  const rangeEndStr = toDateStr(addDays(today, UPCOMING_DAYS - 1));
+
   const dateStr = today.toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "long",
   });
-  const todayStr = today.toISOString().slice(0, 10);
 
   const [data, setData] = useState<DashboardData | null>(null);
+  // 오늘 ~ 6일 뒤(총 7일)까지 걸치는 예약 (다가오는 일정 / 오늘 숙박 / 오늘 식사 공용)
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [disabledClassrooms, setDisabledClassrooms] = useState<string[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [fetching, setFetching] = useState(false);
-  const [listModal, setListModal] = useState<ListModal | null>(null);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
+  // 일반 사용자에게는 수정이 아닌 읽기 전용 상세를 보여준다
+  const [detail, setDetail] = useState<DetailModal | null>(null);
+
+  const load = useCallback(() => {
+    return Promise.all([
+      getDashboard(),
+      getReservationsByRange(todayStr, rangeEndStr),
+      getDisabledClassrooms().catch(() => [] as string[]),
+    ])
+      .then(([dashboard, range, disabled]) => {
+        setData(dashboard);
+        setReservations(range);
+        setDisabledClassrooms(disabled);
+        setLoadFailed(false);
+      })
+      .catch((e) => {
+        console.error(e);
+        setLoadFailed(true);
+      });
+  }, [todayStr, rangeEndStr]);
 
   useEffect(() => {
-    getDashboard().then(setData).catch(console.error);
-    getDisabledClassrooms().then(setDisabledClassrooms).catch(() => {});
-  }, []);
+    load();
+  }, [load]);
 
-  const openEditById = useCallback(async (reservationId: number) => {
+  // tab 을 주면 그 영역(숙박)부터 보여준다
+  const openEditById = useCallback(async (reservationId: number, tab?: "숙박") => {
     setFetching(true);
     try {
       const res = await getReservationById(reservationId);
+      if (!isAdmin()) {
+        setDetail({ reservation: res });
+        return;
+      }
       const years = [
         ...new Set([
           new Date(res.startDate).getFullYear(),
@@ -67,62 +106,63 @@ export default function DashboardPage() {
         ]),
       ];
       const all = (await Promise.all(years.map(getReservationsByYear))).flat();
-      setListModal(null);
-      setEditModal({ reservation: res, allReservations: all });
+      setEditModal({ reservation: res, allReservations: all, initialTab: tab });
     } finally {
       setFetching(false);
     }
   }, []);
-
-  const openMonthlyList = useCallback(async () => {
-    setFetching(true);
-    try {
-      const first = `${todayStr.slice(0, 7)}-01`;
-      const last = new Date(
-        Number(todayStr.slice(0, 4)),
-        Number(todayStr.slice(5, 7)),
-        0,
-      )
-        .toISOString()
-        .slice(0, 10);
-      const items = await getReservationsByRange(first, last);
-      setListModal({
-        title: "이번 달 이용 업체",
-        items: items.filter(isActiveReservation),
-      });
-    } finally {
-      setFetching(false);
-    }
-  }, [todayStr]);
-
 
   const handleSave = useCallback(
     async (saved: Reservation) => {
       if (!editModal) return;
       await updateReservation(editModal.reservation.id, toRequestBody(saved));
       setEditModal(null);
-      getDashboard().then(setData).catch(console.error);
+      load();
     },
-    [editModal],
+    [editModal, load],
+  );
+
+  const upcomingDays = useMemo(
+    () => buildUpcomingDays(reservations, parseDateStr(todayStr), UPCOMING_DAYS),
+    [reservations, todayStr],
+  );
+  const lodgingToday = useMemo(
+    () => summarizeTodayLodging(reservations, todayStr),
+    [reservations, todayStr],
+  );
+  const mealsToday = useMemo(
+    () => summarizeTodayMeals(reservations, todayStr),
+    [reservations, todayStr],
+  );
+
+  const header = (
+    <div className={styles.pageHead}>
+      <div>
+        <h1 className={styles.pageTitle}>대시보드</h1>
+        <p className={styles.pageDesc}>
+          오늘의 이용 현황과 다가오는 일정을 한눈에 확인하세요.
+        </p>
+      </div>
+      <div className={styles.dateBadge}>
+        오늘 <strong>{dateStr}</strong>
+      </div>
+    </div>
   );
 
   if (!data) {
     return (
       <div className={styles.page}>
-        <div className={styles.pageHead}>
-          <span className={styles.pageTitle}>대시보드</span>
-          <div className={styles.dateBadge}>
-            오늘 <span>{dateStr}</span>
-          </div>
+        {header}
+        <div className={styles.statusMsg} role="status">
+          {loadFailed
+            ? "데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
+            : "데이터를 불러오는 중..."}
         </div>
-        <div className={styles.loading}>데이터를 불러오는 중...</div>
       </div>
     );
   }
 
-  const { kpi, todayClassrooms, monthlyData, satisfaction, recentSurveys } =
-    data;
-  const change = kpi.monthlyChange;
+  const { kpi, todayClassrooms, satisfaction } = data;
   const todayOrgCount = new Set(todayClassrooms.map((c) => c.organization))
     .size;
   const todayTotalPeople = Array.from(
@@ -131,102 +171,76 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.pageHead}>
-        <span className={styles.pageTitle}>대시보드</span>
-        <div className={styles.dateBadge}>
-          오늘 <span>{dateStr}</span>
-        </div>
-      </div>
+      {header}
 
-      {/* KPI 카드 3개 */}
       <div className={styles.kpiGrid}>
-        <KpiCard
-          label="이번 달 이용 업체"
-          value={kpi.monthlyReservations}
-          icon="📋"
-          variant="pink"
-          animDelay="0.05s"
-          onClick={openMonthlyList}
-          subText={
-            <>
-              전월 대비{" "}
-              <span className={change >= 0 ? styles.up : styles.down}>
-                {change >= 0 ? `↑ +${change}건` : `↓ ${change}건`}
-              </span>
-            </>
-          }
-        />
         <KpiCard
           label="금일 이용 업체"
           value={todayOrgCount}
-          icon="🏨"
-          variant="green"
-          animDelay="0.10s"
-
-          subText={
+          unit="곳"
+          Icon={Users}
+          tone="green"
+          sub={
             <>
-              총 <span className={styles.greenText}>{todayTotalPeople}명</span>{" "}
-              이용 예정
+              총 <strong>{todayTotalPeople}명</strong> 이용 예정
             </>
           }
         />
         <KpiCard
+          label="다음 7일 예정"
+          value={countUpcomingBookings(upcomingDays)}
+          unit="건"
+          Icon={CalendarClock}
+          tone="accent"
+          sub={`${formatMonthDay(upcomingDays[0].date)} ~ ${formatMonthDay(upcomingDays[UPCOMING_DAYS - 1].date)} 대관 기준`}
+        />
+        <KpiCard
           label="설문 만족도"
-          value={kpi.surveyScore}
-          icon="⭐"
-          variant="yellow"
-          animDelay="0.15s"
-          subText={<>{kpi.surveyCount}건 응답 평균</>}
+          value={kpi.surveyScore > 0 ? kpi.surveyScore.toFixed(1) : "-"}
+          unit="/ 5.0"
+          Icon={Star}
+          tone="warn"
+          sub={`${kpi.surveyCount}건 응답 평균`}
         />
       </div>
 
-      {/* 금일 사용 단체(1fr) + 월별 추이(2fr) */}
-      <div className={styles.row3}>
-        <TodaySchedule
-          todayClassrooms={todayClassrooms}
-          onItemClick={openEditById}
-        />
-        <MonthlyChart
-          monthlyData={monthlyData}
-          year={today.getFullYear()}
-          currentMonth={today.getMonth() + 1}
-        />
-      </div>
+      <UpcomingWeek days={upcomingDays} onSelectBooking={openEditById} />
 
-      {/* 강의실 현황 + 설문 만족도 */}
-      <div className={styles.row2}>
+      <div className={styles.bottomGrid}>
         <RoomStatus
           todayClassrooms={todayClassrooms}
           disabledClassrooms={disabledClassrooms}
           onItemClick={openEditById}
         />
-        <SatisfactionBar satisfaction={satisfaction} />
+        <div className={styles.stack}>
+          <TodayLodging
+            groups={lodgingToday.groups}
+            lodging={lodgingToday.lodging}
+            onSelect={(id) => openEditById(id, "숙박")}
+          />
+          <TodayMeals meals={mealsToday} />
+        </div>
       </div>
 
-      {/* 최근 설문 내역 */}
-      <RecentSurveyTable recentSurveys={recentSurveys} />
+      <SatisfactionSummary satisfaction={satisfaction} />
 
-      {/* 목록 모달 */}
-      {listModal && (
-        <DashboardListModal
-          title={listModal.title}
-          items={listModal.items}
-          onSelect={(r) => openEditById(r.id)}
-          onClose={() => setListModal(null)}
-        />
-      )}
-
-      {/* 예약 편집 모달 */}
       {editModal && (
         <ReservationModal
           reservation={editModal.reservation}
           allReservations={editModal.allReservations}
+          initialTab={editModal.initialTab}
           onClose={() => setEditModal(null)}
           onSave={handleSave}
         />
       )}
 
-      {/* 로딩 오버레이 */}
+      {detail && (
+        <ReservationDetailModal
+          reservation={detail.reservation}
+          onClose={() => setDetail(null)}
+        />
+      )}
+
       {fetching && (
         <div className={styles.fetchingOverlay}>
           <div className={styles.fetchingBox}>

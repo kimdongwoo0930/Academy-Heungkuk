@@ -1,8 +1,9 @@
 "use client";
 
+import ReservationDetailModal from "@/components/dashboard/ReservationDetailModal";
 import ReservationModal from "@/components/reservation/ReservationModal";
 import ReservationTooltip from "@/components/scheduler/ReservationTooltip";
-import MonthNavigator from "@/components/ui/MonthNavigator";
+import MonthSwitcher from "@/components/scheduler/MonthSwitcher";
 import RefreshStatus from "@/components/ui/RefreshStatus";
 import { usePolling } from "@/hooks/usePolling";
 import {
@@ -12,10 +13,13 @@ import {
   updateReservation,
 } from "@/lib/api/reservation";
 import { getDisabledClassrooms } from "@/lib/api/settings";
+import { isAdmin } from "@/lib/utils/auth";
+import { formatMonthDay, toChipColor } from "@/lib/utils/dashboard";
 import { printSchedulerWeekly } from "@/lib/utils/printRoomTable";
 import { Reservation } from "@/types/reservation";
 import { isHoliday } from "@hyunbinseo/holidays-kr";
-import { useEffect, useMemo, useState } from "react";
+import { Printer } from "lucide-react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 
 const WEEK_DAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -29,10 +33,9 @@ function checkIsHoliday(date: Date): boolean {
 }
 
 const CLASSROOM_GROUPS = [
-  { type: "대강의실", bg: "bgDaeGang", rooms: [{ id: "105", cap: 120 }] },
+  { type: "대강의실", rooms: [{ id: "105", cap: 120 }] },
   {
     type: "중강의실",
-    bg: "bgJungGang",
     rooms: [
       { id: "201", cap: 70 },
       { id: "203", cap: 50 },
@@ -41,7 +44,6 @@ const CLASSROOM_GROUPS = [
   },
   {
     type: "소강의실",
-    bg: "bgSoGang",
     rooms: [
       { id: "101", cap: 30 },
       { id: "102", cap: 20 },
@@ -51,7 +53,6 @@ const CLASSROOM_GROUPS = [
   },
   {
     type: "분임실",
-    bg: "bgBunim",
     rooms: [
       { id: "106", cap: 12 },
       { id: "107", cap: 12 },
@@ -61,18 +62,12 @@ const CLASSROOM_GROUPS = [
   },
   {
     type: "다목적실",
-    bg: "bgDamok",
     rooms: [
       { id: "A", cap: 80 },
       { id: "B", cap: 40 },
     ],
   },
 ];
-
-const TYPE_W = 38;
-const ROOM_W = 28;
-const CAP_W = 20;
-const DATE_COL = 36;
 
 function makeDateStr(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -102,6 +97,8 @@ export default function SchedulerPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [disabledClassrooms, setDisabledClassrooms] = useState<Set<string>>(new Set());
   const [editTarget, setEditTarget] = useState<Reservation | null>(null);
+  // 관리자가 아니면 수정 모달 대신 읽기 전용 상세를 보여준다
+  const [detailTarget, setDetailTarget] = useState<Reservation | null>(null);
   const [createDefaults, setCreateDefaults] = useState<{
     date: string;
     endDate?: string;
@@ -193,22 +190,6 @@ export default function SchedulerPage() {
     if (dow === 0) return "sun";
     if (redDaySet.has(cal.dateStr)) return "sun"; // 평일 공휴일은 일요일과 동일 취급
     return null;
-  };
-
-  const thCls = (cal: CalDay) => {
-    if (!cal.isCurrent) return styles.otherMonthTh;
-    const kind = dayKind(cal);
-    if (kind === "sat") return `${styles.weekendTh} ${styles.satTh}`;
-    if (kind === "sun") return `${styles.weekendTh} ${styles.sunTh}`;
-    return "";
-  };
-
-  const tdCls = (cal: CalDay) => {
-    if (!cal.isCurrent) return styles.otherMonthCol;
-    const kind = dayKind(cal);
-    if (kind === "sat") return `${styles.weekendCol} ${styles.satCol}`;
-    if (kind === "sun") return `${styles.weekendCol} ${styles.sunCol}`;
-    return "";
   };
 
   const prevMonth = () => {
@@ -385,26 +366,139 @@ export default function SchedulerPage() {
     return count;
   };
 
+  // ── 렌더링 헬퍼 ──
+  const todayStr = makeDateStr(today);
+  const goToday = () => {
+    setYear(today.getFullYear());
+    setMonth(today.getMonth());
+  };
+
+  const shiftDate = (d: Date, n: number) =>
+    makeDateStr(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
+
+  // 날짜 라벨: 보통 "1", "2"… / 기간의 첫 칸이 다른 달이거나 달이 바뀌는 칸은 "10/30", "12/1"
+  const dayLabel = (cal: CalDay, i: number) =>
+    (i === 0 && !cal.isCurrent) || (i > 0 && cal.date.getDate() === 1)
+      ? `${cal.date.getMonth() + 1}/${cal.date.getDate()}`
+      : String(cal.date.getDate());
+
+  // 열 배경 — 헤더부터 마지막 줄까지 같은 규칙 (오늘 > 다른 달 > 주말)
+  const colBg = (cal: CalDay) => {
+    if (cal.dateStr === todayStr) return styles.today;
+    if (!cal.isCurrent) return styles.outside;
+    return dayKind(cal) ? styles.weekend : "";
+  };
+  const monthStartCls = (cal: CalDay, i: number) =>
+    i > 0 && cal.date.getDate() === 1 ? styles.monthStart : "";
+
+  // 연속된 같은 예약을 한 덩어리(grid-column span)로 묶는다
+  interface Run {
+    idx: number;
+    span: number;
+    res: Reservation;
+    cutL: boolean; // 이 기간 앞에서 이어짐
+    cutR: boolean; // 이 기간 뒤로 이어짐
+  }
+  const buildRuns = (
+    days: CalDay[],
+    resAt: (dateStr: string) => Reservation | undefined,
+  ): Run[] => {
+    const runs: Run[] = [];
+    let di = 0;
+    while (di < days.length) {
+      const res = resAt(days[di].dateStr);
+      if (!res) {
+        di++;
+        continue;
+      }
+      let span = 1;
+      while (di + span < days.length && resAt(days[di + span].dateStr)?.id === res.id) span++;
+      runs.push({
+        idx: di,
+        span,
+        res,
+        cutL: resAt(shiftDate(days[di].date, -1))?.id === res.id,
+        cutR: resAt(shiftDate(days[di + span - 1].date, 1))?.id === res.id,
+      });
+      di += span;
+    }
+    return runs;
+  };
+
+  const barLabel = (run: Run) => {
+    const { res, cutL, cutR } = run;
+    const from = formatMonthDay(res.startDate);
+    const to = formatMonthDay(res.endDate);
+    const range = cutL && cutR ? `${from}~${to}` : cutL ? `${from}~` : cutR ? `~${to}` : "";
+    return `${cutL ? "‹ " : ""}${res.organization}${range ? ` · ${range}` : ""}${cutR ? " ›" : ""}`;
+  };
+
+  const renderBar = (run: Run, roomLabel: string, key: string) => {
+    const color = toChipColor(run.res.colorCode);
+    const style = {
+      gridColumn: `${run.idx + 2} / span ${run.span}`,
+      "--c": color.rgb,
+      "--fg-light": color.fgLight,
+      "--fg-dark": color.fgDark,
+    } as CSSProperties;
+    return (
+      <ReservationTooltip key={key} reservation={run.res}>
+        <button
+          type="button"
+          className={`${styles.bar}${run.cutL ? ` ${styles.barCutL}` : ""}${run.cutR ? ` ${styles.barCutR}` : ""}`}
+          style={style}
+          aria-label={`${run.res.organization} ${roomLabel} ${run.res.startDate}부터 ${run.res.endDate}까지`}
+          onClick={() =>
+            isAdmin() ? setEditTarget(run.res) : setDetailTarget(run.res)
+          }
+        >
+          {barLabel(run)}
+        </button>
+      </ReservationTooltip>
+    );
+  };
+
+  // 카드 제목 줄 보조 문구
+  const cardNote = (days: CalDay[]) => {
+    const notes: string[] = [];
+    const first = days.findIndex((d) => d.isCurrent);
+    const last = days.length - 1 - [...days].reverse().findIndex((d) => d.isCurrent);
+    if (first > 0) {
+      const lead = days.slice(0, first);
+      const leadSet = new Set(lead.map((d) => d.dateStr));
+      const hasCarry = reservations.some(
+        (r) =>
+          r.status !== "취소" &&
+          (r.classrooms?.some((c) => leadSet.has(String(c.reservedDate))) ||
+            r.rooms?.some((c) => leadSet.has(String(c.reservedDate)))),
+      );
+      if (hasCarry) {
+        const f = lead[0].date;
+        const l = lead[lead.length - 1].date;
+        notes.push(`전월 이월 예약이 있어 ${f.getMonth() + 1}/${f.getDate()}~${l.getMonth() + 1}/${l.getDate()}도 함께 표시`);
+      }
+    }
+    if (last >= 0 && last < days.length - 1) {
+      notes.push(`${days[last + 1].date.getMonth() + 1}월 ${days[last + 1].date.getDate()}일부터는 다음 달 일정`);
+    }
+    return notes.join(" · ");
+  };
+
+  const visibleGroups = CLASSROOM_GROUPS.map((g) => ({
+    ...g,
+    rooms: g.rooms.filter((r) => !disabledClassrooms.has(r.id)),
+  })).filter((g) => g.rooms.length > 0);
+
   return (
     <div id="schedulerPrintArea" className={styles.schedulerPage}>
-      <div className={styles.header}>
-        <div className={styles.headerActions}>
-          <button className={styles.printBtn} onClick={() => window.print()}>
-            🖨 인쇄 / PDF
-          </button>
-          <button
-            className={styles.printBtn}
-            onClick={() => printSchedulerWeekly(year, month, reservations)}
-          >
-            🖨 주차별 인쇄
-          </button>
-          <span className={styles.dragHint}>
-            빈칸 드래그로 예약 · ⌘/Ctrl+드래그로 여러 강의실
-          </span>
-          <RefreshStatus lastUpdated={lastUpdated} onRefresh={refetchNow} />
-        </div>
-        <div className={styles.monthNavigatorCard}>
-          <MonthNavigator
+      <div className={styles.pageHead}>
+        <h1 className={styles.pageTitle}>일정 현황</h1>
+        <p className={styles.pageDesc}>강의실별 대관과 숙박 일정을 기간별로 확인합니다</p>
+      </div>
+
+      <div className={styles.toolbar}>
+        <div className={styles.toolbarLeft}>
+          <MonthSwitcher
             year={year}
             month={month}
             onPrev={prevMonth}
@@ -414,6 +508,27 @@ export default function SchedulerPage() {
               setMonth(m);
             }}
           />
+          <button type="button" className={styles.btn} onClick={goToday}>
+            오늘
+          </button>
+          <span className={styles.hint}>
+            빈칸 드래그로 예약 · <kbd className={styles.kbd}>⌘/Ctrl</kbd>+드래그로 여러 강의실
+          </span>
+        </div>
+        <div className={styles.toolbarRight}>
+          <RefreshStatus lastUpdated={lastUpdated} onRefresh={refetchNow} />
+          <button type="button" className={styles.btn} onClick={() => window.print()}>
+            <Printer size={14} aria-hidden="true" />
+            인쇄 / PDF
+          </button>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnPrimary}`}
+            onClick={() => printSchedulerWeekly(year, month, reservations)}
+          >
+            <Printer size={14} aria-hidden="true" />
+            주차별 인쇄
+          </button>
         </div>
       </div>
 
@@ -422,130 +537,105 @@ export default function SchedulerPage() {
       </div>
 
       {isLoading ? (
-        <div className={styles.loadingOverlay}>
-          <p className={styles.loadingText}>데이터를 가져오는 중...</p>
+        <div className={styles.loading} role="status">
+          데이터를 가져오는 중...
         </div>
       ) : (
         halves.map((halfDays, hi) => {
-          const leftW = TYPE_W + ROOM_W + CAP_W + halfDays.length * DATE_COL;
+          const first = halfDays[0].date;
+          const last = halfDays[halfDays.length - 1].date;
+          const note = cardNote(halfDays);
+          const gridVars = { "--n": halfDays.length } as CSSProperties;
+
+          // 숙박: 레인 패킹 — 날짜가 안 겹치면 같은 줄에 배치
+          const halfRoomRes = reservations.filter(
+            (r) =>
+              r.status !== "취소" &&
+              r.rooms?.some((rm) => halfDays.some((d) => d.dateStr === String(rm.reservedDate))),
+          );
+          const lanes: Reservation[][] = [];
+          for (const res of halfRoomRes) {
+            const resDates = new Set(res.rooms?.map((rm) => String(rm.reservedDate)) ?? []);
+            const lane = lanes.find(
+              (l) => !l.some((r) => r.rooms?.some((rm) => resDates.has(String(rm.reservedDate)))),
+            );
+            if (lane) lane.push(res);
+            else lanes.push([res]);
+          }
+          if (lanes.length === 0) lanes.push([]);
 
           return (
-            <div key={hi} className={styles.halfBlock}>
-              {/* ── 일정 현황 ── */}
-              <div className={styles.tableWrap}>
-                <div className={styles.sectionTitle}>일정 현황</div>
-                <div className={styles.tableScroll}>
-                <div style={{ minWidth: leftW, width: "100%" }}>
-                  <table
-                    className={`${styles.table}${drag ? ` ${styles.dragging}` : ""}`}
-                    style={{ minWidth: leftW, width: "100%" }}
-                  >
-                    <colgroup>
-                      <col style={{ width: `${TYPE_W}px` }} />
-                      <col style={{ width: `${ROOM_W}px` }} />
-                      <col style={{ width: `${CAP_W}px` }} />
-                      {halfDays.map((cal) => (
-                        <col
+            <section key={hi} className={styles.card}>
+              <div className={styles.cardHead}>
+                <h2 className={styles.cardTitle}>
+                  {first.getMonth() + 1}월 {first.getDate()}일 – {last.getMonth() + 1}월 {last.getDate()}일
+                </h2>
+                {note && <span className={styles.cardNote}>{note}</span>}
+              </div>
+
+              <div className={styles.scroll}>
+                <div className={`${styles.gantt}${drag ? ` ${styles.dragging}` : ""}`}>
+                  {/* 날짜 헤더 */}
+                  <div className={`${styles.row} ${styles.headRow}`} style={gridVars}>
+                    <div className={styles.headLabel}>구분 · 호실 · 정원</div>
+                    {halfDays.map((cal, i) => {
+                      const kind = dayKind(cal);
+                      return (
+                        <div
                           key={cal.dateStr}
-                          style={{ width: `${DATE_COL}px` }}
-                        />
-                      ))}
-                    </colgroup>
-                    <thead>
-                      <tr>
-                        <th className={styles.thType}>구분</th>
-                        <th className={styles.thRoom}>호실</th>
-                        <th className={styles.thCap}>정원</th>
-                        {halfDays.map((cal) => (
-                          <th key={cal.dateStr} className={thCls(cal)}>
-                            <div className={styles.dateNum}>
-                              {cal.date.getDate()}일
+                          className={[
+                            styles.dayHead,
+                            colBg(cal),
+                            monthStartCls(cal, i),
+                            kind ? styles[kind] : "",
+                            cal.isCurrent ? "" : styles.dayHeadOutside,
+                            cal.dateStr === todayStr ? styles.todayHead : "",
+                          ].join(" ")}
+                          style={{ gridColumn: i + 2 }}
+                        >
+                          <div className={styles.dateNum}>{dayLabel(cal, i)}</div>
+                          <div className={styles.dayName}>{WEEK_DAYS[cal.date.getDay()]}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 강의실 그룹 */}
+                  {visibleGroups.map((group) => (
+                    <div key={group.type} className={styles.group}>
+                      <div className={styles.typeCell}>{group.type}</div>
+                      {group.rooms.map((room) => {
+                        const roomLabel = /^\d+$/.test(room.id) ? `${room.id}호` : room.id;
+                        const runs = buildRuns(halfDays, (d) => getClassroomRes(room.id, d));
+                        return (
+                          <div key={room.id} className={`${styles.row} ${styles.roomRow}`} style={gridVars}>
+                            <div className={styles.label}>
+                              <span className={styles.roomNo}>{roomLabel}</span>
+                              <span className={styles.roomCap}>{room.cap}인</span>
                             </div>
-                            <div className={styles.dayLabel}>
-                              {WEEK_DAYS[cal.date.getDay()]}
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {CLASSROOM_GROUPS.flatMap((group) => {
-                        const visibleRooms = group.rooms.filter((r) => !disabledClassrooms.has(r.id));
-                        if (visibleRooms.length === 0) return [];
-                        return [{ ...group, rooms: visibleRooms }];
-                      }).map((group, gi) =>
-                        group.rooms.map((room, ri) => {
-                          // colspan 스패닝: 연속된 같은 예약을 하나의 셀로 묶음
-                          const cells: {
-                            cal: CalDay;
-                            res: ReturnType<typeof getClassroomRes>;
-                            span: number;
-                          }[] = [];
-                          let di = 0;
-                          while (di < halfDays.length) {
-                            const cal = halfDays[di];
-                            const res = getClassroomRes(room.id, cal.dateStr);
-                            if (res) {
-                              let span = 1;
-                              while (di + span < halfDays.length) {
-                                const nr = getClassroomRes(
-                                  room.id,
-                                  halfDays[di + span].dateStr,
-                                );
-                                if (nr && nr.id === res.id) span++;
-                                else break;
-                              }
-                              cells.push({ cal, res, span });
-                              di += span;
-                            } else {
-                              cells.push({ cal, res: undefined, span: 1 });
-                              di++;
-                            }
-                          }
-                          return (
-                            <tr key={`${gi}-${ri}`}>
-                              {ri === 0 && (
-                                <td
-                                  className={`${styles.tdType} ${styles[group.bg]}${gi > 0 ? ` ${styles.groupDivider}` : ""}`}
-                                  rowSpan={group.rooms.length}
-                                >
-                                  {group.type}
-                                </td>
-                              )}
-                              <td
-                                className={`${styles.tdRoom} ${styles[group.bg]}${ri === 0 && gi > 0 ? ` ${styles.groupDivider}` : ""}`}
-                              >
-                                {/^\d+$/.test(room.id)
-                                  ? `${room.id} 호`
-                                  : room.id}
-                              </td>
-                              <td
-                                className={`${styles.tdCap} ${styles[group.bg]}${ri === 0 && gi > 0 ? ` ${styles.groupDivider}` : ""}`}
-                              >
-                                {room.cap != null ? `${room.cap} 인` : ""}
-                              </td>
-                              {cells.map(({ cal, res, span }) => {
-                                const cellKey = `${room.id}|${cal.dateStr}`;
-                                const inDrag =
-                                  (drag?.half === hi &&
-                                    !!dragCellSet?.has(cellKey)) ||
-                                  multiSel.has(cellKey);
-                                return (
-                                <td
+                            {halfDays.map((cal, i) => {
+                              const res = getClassroomRes(room.id, cal.dateStr);
+                              const cellKey = `${room.id}|${cal.dateStr}`;
+                              const inDrag = (drag?.half === hi && !!dragCellSet?.has(cellKey)) || multiSel.has(cellKey);
+                              return (
+                                <div
                                   key={cal.dateStr}
-                                  colSpan={span > 1 ? span : undefined}
-                                  className={`${tdCls(cal) || styles[group.bg]}${ri === 0 && gi > 0 ? ` ${styles.groupDivider}` : ""}${inDrag ? ` ${styles.dragSel}` : ""}`}
+                                  className={[
+                                    styles.cell,
+                                    colBg(cal),
+                                    monthStartCls(cal, i),
+                                    res ? "" : styles.cellFree,
+                                    inDrag ? styles.dragSel : "",
+                                  ].join(" ")}
+                                  style={{ gridColumn: i + 2 }}
                                   onMouseDown={
                                     res
                                       ? undefined
                                       : (e) => {
                                           if (e.button !== 0) return;
                                           e.preventDefault(); // 텍스트 선택 방지
-                                          const additive =
-                                            e.metaKey ||
-                                            e.ctrlKey ||
-                                            multiSel.size > 0;
-                                          // 누적 선택은 앞/뒤 2주 블록을 넘나들어도 됨
+                                          const additive = e.metaKey || e.ctrlKey || multiSel.size > 0;
+                                          // 누적 선택은 앞/뒤 블록을 넘나들어도 됨
                                           setDrag({
                                             half: hi,
                                             anchorRoom: room.id,
@@ -559,228 +649,79 @@ export default function SchedulerPage() {
                                   onMouseEnter={() =>
                                     setDrag((d) => {
                                       if (!d || d.half !== hi) return d;
-                                      const cand = {
-                                        ...d,
-                                        hoverRoom: room.id,
-                                        hoverDate: cal.dateStr,
-                                      };
+                                      const cand = { ...d, hoverRoom: room.id, hoverDate: cal.dateStr };
                                       // 예약과 겹치는 확장은 거부(직전 상태 유지)
                                       return computeDragCells(cand) ? cand : d;
                                     })
                                   }
-                                  onDoubleClick={() =>
-                                    !res &&
-                                    handleCellDoubleClick(cal.dateStr, room.id)
-                                  }
-                                  style={{ cursor: res ? undefined : "cell" }}
-                                >
-                                  {res && (
-                                    <ReservationTooltip reservation={res}>
-                                      <span
-                                        className={styles.bar}
-                                        style={{
-                                          backgroundColor: res.colorCode,
-                                          cursor: "pointer",
-                                        }}
-                                        onClick={() => setEditTarget(res)}
-                                      >
-                                        {res.organization}
-                                      </span>
-                                    </ReservationTooltip>
-                                  )}
-                                </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        }),
-                      )}
-                      {/* ── 숙박 섹션 ── */}
-                      {(() => {
-                        const halfRoomRes = reservations.filter(
-                          (r) =>
-                            r.status !== "취소" &&
-                            r.rooms?.some((rm) =>
-                              halfDays.some(
-                                (d) => d.dateStr === String(rm.reservedDate),
-                              ),
-                            ),
-                        );
-
-                        // 레인 패킹: 날짜 안 겹치면 같은 행에 배치
-                        const lanes: Reservation[][] = [];
-                        for (const res of halfRoomRes) {
-                          const resDates = new Set(
-                            res.rooms?.map((rm) => String(rm.reservedDate)) ??
-                              [],
-                          );
-                          let placed = false;
-                          for (const lane of lanes) {
-                            const conflict = lane.some((r) =>
-                              r.rooms?.some((rm) =>
-                                resDates.has(String(rm.reservedDate)),
-                              ),
-                            );
-                            if (!conflict) {
-                              lane.push(res);
-                              placed = true;
-                              break;
-                            }
-                          }
-                          if (!placed) lanes.push([res]);
-                        }
-
-                        const totalSpan = lanes.length + 1;
-                        return (
-                          <>
-                            {lanes.map((lane, idx) => {
-                              const isFirst = idx === 0;
-                              // colspan 스패닝
-                              const cells: {
-                                cal: CalDay;
-                                res: Reservation | undefined;
-                                span: number;
-                                isLast: boolean;
-                              }[] = [];
-                              let di = 0;
-                              while (di < halfDays.length) {
-                                const cal = halfDays[di];
-                                const res = lane.find((r) =>
-                                  r.rooms?.some(
-                                    (rm) =>
-                                      String(rm.reservedDate) === cal.dateStr,
-                                  ),
-                                );
-                                if (res) {
-                                  let span = 1;
-                                  while (di + span < halfDays.length) {
-                                    const hasNext = res.rooms?.some(
-                                      (rm) =>
-                                        String(rm.reservedDate) ===
-                                        halfDays[di + span].dateStr,
-                                    );
-                                    if (hasNext) span++;
-                                    else break;
-                                  }
-                                  cells.push({
-                                    cal,
-                                    res,
-                                    span,
-                                    isLast: di + span === halfDays.length,
-                                  });
-                                  di += span;
-                                } else {
-                                  cells.push({
-                                    cal,
-                                    res: undefined,
-                                    span: 1,
-                                    isLast: di + 1 === halfDays.length,
-                                  });
-                                  di++;
-                                }
-                              }
-                              return (
-                                <tr key={`lane-${idx}`}>
-                                  {isFirst && (
-                                    <td
-                                      className={`${styles.tdType} ${styles.bgAccom} ${styles.roomTopBorder} ${styles.roomBottomBorder} ${styles.roomLeftBorder} ${styles.roomCornerTL} ${styles.roomCornerBL}`}
-                                      rowSpan={totalSpan}
-                                    >
-                                      숙박
-                                    </td>
-                                  )}
-                                  <td
-                                    className={`${styles.tdRoom} ${styles.bgAccom} ${isFirst ? styles.roomTopBorder : styles.roomInnerRow}`}
-                                  />
-                                  <td
-                                    className={`${styles.tdCap} ${styles.bgAccom} ${isFirst ? styles.roomTopBorder : styles.roomInnerRow}`}
-                                  />
-                                  {cells.map(({ cal, res, span, isLast }) => {
-                                    const endDate = new Date(cal.date);
-                                    endDate.setDate(endDate.getDate() + 1);
-                                    const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
-                                    return (
-                                      <td
-                                        key={cal.dateStr}
-                                        colSpan={span > 1 ? span : undefined}
-                                        className={`${tdCls(cal) || styles.bgAccom} ${isFirst ? styles.roomTopBorder : ""} ${isLast ? `${styles.roomRightBorder} ${isFirst ? styles.roomCornerTR : ""}` : ""}`}
-                                        onDoubleClick={() =>
-                                          !res &&
-                                          setCreateDefaults({
-                                            date: cal.dateStr,
-                                            endDate: endDateStr,
-                                          })
-                                        }
-                                      >
-                                        {res && (
-                                          <ReservationTooltip reservation={res}>
-                                            <span
-                                              className={styles.bar}
-                                              style={{
-                                                backgroundColor: res.colorCode,
-                                                cursor: "pointer",
-                                              }}
-                                              onClick={() => setEditTarget(res)}
-                                            >
-                                              {res.organization}
-                                            </span>
-                                          </ReservationTooltip>
-                                        )}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
+                                  onDoubleClick={() => !res && handleCellDoubleClick(cal.dateStr, room.id)}
+                                />
                               );
                             })}
-                            <tr key="room-계">
-                              {lanes.length === 0 && (
-                                <td
-                                  className={`${styles.tdType} ${styles.bgAccom} ${styles.roomTopBorder} ${styles.roomBottomBorder} ${styles.roomLeftBorder}`}
-                                >
-                                  숙박
-                                </td>
-                              )}
-                              <td
-                                className={`${styles.tdRoom} ${styles.bgAccom} ${lanes.length === 0 ? styles.roomTopBorder : ""} ${styles.roomBottomBorder}`}
-                              >
-                                계(4/2/1인실)
-                              </td>
-                              <td
-                                className={`${styles.tdCap} ${styles.bgAccom} ${lanes.length === 0 ? styles.roomTopBorder : ""} ${styles.roomBottomBorder}`}
-                              />
-                              {halfDays.map((cal) => {
-                                const c4 = getRoomCount(cal.dateStr, "4인실");
-                                const c2 = getRoomCount(cal.dateStr, "2인실");
-                                const c1 = getRoomCount(cal.dateStr, "1인실");
-                                const total = c4 + c2 + c1;
-                                const endDate = new Date(cal.date);
-                                endDate.setDate(endDate.getDate() + 1);
-                                const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
-                                return (
-                                  <td
-                                    key={cal.dateStr}
-                                    className={`${tdCls(cal) || styles.bgAccom} ${styles.roomTotalCell} ${lanes.length === 0 ? `${styles.roomTopBorder} ${styles.roomCornerTL}` : ""} ${styles.roomBottomBorder} ${cal.dateStr === halfDays[halfDays.length - 1].dateStr ? `${styles.roomRightBorder} ${styles.roomCornerBR} ${lanes.length === 0 ? styles.roomCornerTR : ""}` : ""}`}
-                                    onDoubleClick={() =>
-                                      setCreateDefaults({
-                                        date: cal.dateStr,
-                                        endDate: endDateStr,
-                                      })
-                                    }
-                                  >
-                                    {total > 0 && `${c4}/${c2}/${c1}`}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          </>
+                            {runs.map((run) => renderBar(run, roomLabel, `${room.id}-${run.idx}`))}
+                          </div>
                         );
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
+                      })}
+                    </div>
+                  ))}
+
+                  {/* 숙박 */}
+                  <div className={`${styles.group} ${styles.lodgeGroup}`}>
+                  <div className={`${styles.typeCell} ${styles.typeLodge}`}>숙박</div>
+                  {lanes.map((lane, li) => {
+                    const runs = buildRuns(halfDays, (d) =>
+                      lane.find((r) => r.rooms?.some((rm) => String(rm.reservedDate) === d)),
+                    );
+                    return (
+                      <div key={`lane-${li}`} className={`${styles.row} ${styles.roomRow} ${styles.lodgeRow}`} style={gridVars}>
+                        <div className={styles.label}>
+                          {li === 0 && <span className={styles.roomNo}>투숙 일정</span>}
+                        </div>
+                        {halfDays.map((cal, i) => {
+                          const has = lane.some((r) => r.rooms?.some((rm) => String(rm.reservedDate) === cal.dateStr));
+                          return (
+                            <div
+                              key={cal.dateStr}
+                              className={[styles.cell, colBg(cal), monthStartCls(cal, i), has ? "" : styles.cellFree].join(" ")}
+                              style={{ gridColumn: i + 2 }}
+                              onDoubleClick={() =>
+                                !has &&
+                                setCreateDefaults({ date: cal.dateStr, endDate: shiftDate(cal.date, 1) })
+                              }
+                            />
+                          );
+                        })}
+                        {runs.map((run) => renderBar(run, "숙박", `lodge-${li}-${run.idx}`))}
+                      </div>
+                    );
+                  })}
+                  <div className={`${styles.row} ${styles.countRow} ${styles.lodgeRow}`} style={gridVars}>
+                    <div className={styles.label}>
+                      <span className={styles.roomNo}>투숙 인원</span>
+                      <span className={styles.lodgeLabelMuted}>4/2/1인실</span>
+                    </div>
+                    {halfDays.map((cal, i) => {
+                      const c4 = getRoomCount(cal.dateStr, "4인실");
+                      const c2 = getRoomCount(cal.dateStr, "2인실");
+                      const c1 = getRoomCount(cal.dateStr, "1인실");
+                      return (
+                        <div
+                          key={cal.dateStr}
+                          className={[styles.count, colBg(cal), monthStartCls(cal, i)].join(" ")}
+                          style={{ gridColumn: i + 2 }}
+                          onDoubleClick={() =>
+                            setCreateDefaults({ date: cal.dateStr, endDate: shiftDate(cal.date, 1) })
+                          }
+                        >
+                          {c4 + c2 + c1 > 0 && `${c4}/${c2}/${c1}`}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
           );
         })
       )}
@@ -798,6 +739,13 @@ export default function SchedulerPage() {
             취소
           </button>
         </div>
+      )}
+
+      {detailTarget && (
+        <ReservationDetailModal
+          reservation={detailTarget}
+          onClose={() => setDetailTarget(null)}
+        />
       )}
 
       {editTarget && (

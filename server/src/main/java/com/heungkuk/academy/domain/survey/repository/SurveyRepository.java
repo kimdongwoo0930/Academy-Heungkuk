@@ -29,12 +29,12 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
     List<Survey> findRecentActiveReservationSurveys(Pageable pageable);
 
     @Query("""
-            SELECT AVG(s.staffService) as staffService,
-                   AVG(s.cleanliness)  as cleanliness,
-                   AVG(s.facilities)   as facilities,
-                   AVG(s.cafeteria)    as cafeteria,
-                   AVG(s.pricing)      as pricing,
-                   COUNT(s)            as total
+            SELECT AVG(CASE WHEN s.staffService BETWEEN 1 AND 5 THEN s.staffService END) as staffService,
+                   AVG(CASE WHEN s.cleanliness BETWEEN 1 AND 5 THEN s.cleanliness END) as cleanliness,
+                   AVG(CASE WHEN s.facilities BETWEEN 1 AND 5 THEN s.facilities END) as facilities,
+                   AVG(CASE WHEN s.cafeteria BETWEEN 1 AND 5 THEN s.cafeteria END) as cafeteria,
+                   AVG(CASE WHEN s.pricing BETWEEN 1 AND 5 THEN s.pricing END) as pricing,
+                   COUNT(s) as total
             FROM Survey s
             JOIN s.surveyToken t
             JOIN Reservation r ON r.reservationCode = t.reservationId

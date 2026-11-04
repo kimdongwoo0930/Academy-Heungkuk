@@ -1,0 +1,25 @@
+/* overflow:hidden 금지 — 팝오버가 잘린다 */
+.card {
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: 16px;
+  box-shadow: var(--d-shadow);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 22px 24px 16px;
+}
+
+.headLeft { display: flex; align-items: baseline; gap: 10px; }
+.title { font-size: 16px; font-weight: 700; color: var(--d-text); }
+.sub { font-size: 13px; color: var(--d-muted); }
+.hint { font-size: 12px; color: var(--d-muted); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--d-line2);
+}

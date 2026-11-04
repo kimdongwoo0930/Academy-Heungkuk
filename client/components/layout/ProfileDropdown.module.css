@@ -31,8 +31,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--text-inverse);
+  background: var(--sidebar-accent-soft);
+  color: var(--sidebar-accent);
   font-size: 13px;
   font-weight: 700;
   display: flex;

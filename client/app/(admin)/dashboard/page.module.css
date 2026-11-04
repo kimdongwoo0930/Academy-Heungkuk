@@ -1,54 +1,108 @@
+/*
+ * 대시보드 v2 디자인 토큰.
+ * 전역 --bg / --surface / --text / --accent 와 이름이 겹치고 값도 달라서 --d- 접두사를 붙여 이 페이지 안에서만 쓴다.
+ * (예약 모달 등 다른 화면이 전역 토큰을 그대로 쓰도록)
+ */
 .page {
+  --d-bg: #f4f3f8;
+  --d-surface: #ffffff;
+  --d-surface2: #faf9fd;
+  --d-line: #e6e3ee;
+  --d-line2: #eeebf4;
+  --d-text: #1c1829;
+  --d-muted: #615d75;
+  --d-accent: #d0245f;
+  --d-accent-soft: #fde9f0;
+  --d-accent-line: rgba(208, 36, 95, 0.3);
+  --d-green: #1f9d6b;
+  --d-green-fg: #14663f;
+  --d-green-soft: #dcf5e9;
+  --d-warn: #e0a21b;
+  --d-warn-fg: #8a5a00;
+  --d-warn-soft: #fdf0d2;
+  --d-series: #6d4fd8;
+  --d-track: #eeebf4;
+  --d-sat: #2d5fd0;
+  --d-sun: #cc2a4d;
+  --d-weekend: rgba(60, 40, 120, 0.03);
+  --d-shadow: 0 1px 2px rgba(30, 23, 48, 0.05);
+
+  /* 본문 영역(padding 24px)을 덮어 배경을 칠하고 padding 32px 40px 을 맞춘다 */
+  margin: -24px;
+  padding: 32px 40px;
+  min-height: calc(100vh - var(--header-height));
+  background: var(--d-bg);
+  color: var(--d-text);
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding-bottom: 32px;
+  gap: 24px;
+}
+
+:global([data-theme='dark']) .page {
+  --d-bg: #100c19;
+  --d-surface: #19142a;
+  --d-surface2: #1e1833;
+  --d-line: #2c2542;
+  --d-line2: #241e38;
+  --d-text: #ede9f7;
+  --d-muted: #a59fbd;
+  --d-accent: #ff6aa2;
+  --d-accent-soft: rgba(255, 106, 162, 0.14);
+  --d-accent-line: rgba(255, 106, 162, 0.38);
+  --d-green: #4fd1a1;
+  --d-green-fg: #6fe0b6;
+  --d-green-soft: rgba(79, 209, 161, 0.15);
+  --d-warn: #f4c460;
+  --d-warn-fg: #f4c460;
+  --d-warn-soft: rgba(244, 196, 96, 0.15);
+  --d-series: #a78bfa;
+  --d-track: #2a2340;
+  --d-sat: #86a9ff;
+  --d-sun: #ff8396;
+  --d-weekend: rgba(255, 255, 255, 0.025);
+  --d-shadow: none;
 }
 
 .pageHead {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 16px;
 }
-.pageTitle { font-size: 15px; font-weight: 700; color: var(--text); }
+
+.pageTitle { font-size: 26px; font-weight: 700; color: var(--d-text); }
+.pageDesc { margin-top: 4px; font-size: 14px; color: var(--d-muted); }
+
 .dateBadge {
-  font-size: 11px;
-  color: var(--text-sub);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  padding: 5px 14px;
-  border-radius: 20px;
+  font-size: 13px;
+  color: var(--d-muted);
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  padding: 7px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
-.dateBadge span { color: #e8306a; font-weight: 700; }
+.dateBadge strong { margin-left: 4px; color: var(--d-text); font-weight: 600; }
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
 }
 
-/* 오늘 일정(1fr) + 월별 추이(2fr) */
-.row3 {
+.bottomGrid {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 16px;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 20px;
+  align-items: start;
 }
 
-/* 강의실 + 만족도 (1:1) */
-.row2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
+.stack { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 
-.up        { color: #0eab6e; font-weight: 700; }
-.down      { color: #e8306a; font-weight: 700; }
-.greenText { color: #0eab6e; font-weight: 700; }
-
-.loading {
+.statusMsg {
   text-align: center;
   padding: 80px 0;
-  color: var(--text-sub);
+  color: var(--d-muted);
   font-size: 14px;
 }
 
@@ -62,12 +116,7 @@
   z-index: 900;
 }
 
-.fetchingBox {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
+.fetchingBox { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
 .spinner {
   width: 36px;
@@ -78,11 +127,7 @@
   animation: spin 0.7s linear infinite;
 }
 
-.fetchingText {
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-}
+.fetchingText { font-size: 13px; font-weight: 600; color: #fff; }
 
 @keyframes spin {
   to { transform: rotate(360deg); }

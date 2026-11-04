@@ -1,315 +1,341 @@
+/*
+ * 일정 현황 v2 — 대시보드와 같은 --d- 토큰 + 이 페이지 전용 토큰(today / outside / lodge 등).
+ * 전역 --bg / --surface / --accent 와 값이 달라 접두사를 붙여 이 페이지 안에서만 쓴다.
+ */
 .schedulerPage {
-  --scheduler-bg: #f4f6f8;
-  --scheduler-surface: #ffffff;
-  --scheduler-surface-2: #f7f9fc;
-  --scheduler-surface-hover: #eef2f7;
-  --scheduler-border: #d8e0ea;
-  --scheduler-soft-border: #d0d0d0;
-  --scheduler-text: #1a1a1a;
-  --scheduler-text-sub: #6b7280;
-  --scheduler-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --scheduler-table-header-bg: #dce4f0;
-  --scheduler-table-header-border: #b0bdd0;
-  --scheduler-today-th-bg: #ffd6d6;
-  --scheduler-today-th-text: #c0392b;
-  --scheduler-weekend-th-bg: #ffe8e8;
-  --scheduler-weekend-th-text: #c0392b;
-  --scheduler-other-th-bg: #f0f0f0;
-  --scheduler-other-th-text: #bbb;
-  --scheduler-weekend-col-bg: #fff5f5;
-  /* 주말 구분 — 토요일: 블루 / 일요일·공휴일: 레드 (헤더/텍스트는 파생값) */
-  --scheduler-sat-col-bg: #f1f5ff;
-  --scheduler-sat-th-bg: #e4ecff;
-  --scheduler-sat-text: #2563eb;
-  --scheduler-sun-col-bg: #fff2f4;
-  --scheduler-sun-th-bg: #ffe4e8;
-  --scheduler-sun-text: #c0392b;
-  --scheduler-other-col-bg: #f5f5f5;
-  --scheduler-hover-col-bg: #c8d8f0;
-  --scheduler-section-bg: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  --scheduler-row-label-bg: #f8f9fc;
-  --scheduler-total-row-bg: #dce4f0;
-  --scheduler-week-total-bg: #f0f4ff;
-  --scheduler-print-btn-bg: #f8fafc;
-  --scheduler-print-btn-hover-bg: #eef3f8;
-  --scheduler-print-btn-border: #d8e0ea;
-  --scheduler-print-btn-text: #526071;
-  --scheduler-print-btn-hover-text: #334155;
-  --scheduler-accom-bg: #fff8fa;
-  --scheduler-group-divider: #bebcbc;
-  --scheduler-room-border: #f87171;
-  --scheduler-drag-sel-bg: #dce9ff;
-  --scheduler-drag-sel-border: #5b8def;
-  background: var(--scheduler-bg);
-  color: var(--scheduler-text);
-  min-height: 100%;
-  color-scheme: light;
-}
+  --d-bg: #f4f3f8;
+  --d-surface: #ffffff;
+  --d-surface2: #faf9fd;
+  --d-line: #e6e3ee;
+  --d-line2: #eeebf4;
+  --d-grid: #d3cfe0;
+  --d-text: #1c1829;
+  --d-muted: #615d75;
+  --d-accent: #d0245f;
+  --d-on-accent: #ffffff;
+  --d-accent-soft: #fde9f0;
+  --d-warn-fg: #8a5a00;
+  --d-accent-line: rgba(208, 36, 95, 0.3);
+  --d-sat: #2d5fd0;
+  --d-sun: #cc2a4d;
+  --d-weekend: rgba(60, 40, 120, 0.06);
+  --d-today: rgba(208, 36, 95, 0.09);
+  --d-outside: rgba(0, 0, 0, 0.025);
+  --d-lodge: rgba(208, 36, 95, 0.035);
+  --d-shadow: 0 1px 2px rgba(30, 23, 48, 0.05);
 
-[data-theme='dark'] .schedulerPage {
-  --scheduler-bg: var(--bg);
-  --scheduler-surface: #182030;
-  --scheduler-surface-2: #1d2a3e;
-  --scheduler-surface-hover: #1e2d42;
-  --scheduler-border: #2a3a52;
-  --scheduler-soft-border: #2e3f58;
-  --scheduler-text: #e6ebf2;
-  --scheduler-text-sub: #7a90a8;
-  --scheduler-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-  --scheduler-table-header-bg: #1e2d42;
-  --scheduler-table-header-border: #2a3a52;
-  --scheduler-today-th-bg: #2e1f2e;
-  --scheduler-today-th-text: #f0a0b8;
-  --scheduler-weekend-th-bg: #2c1e22;
-  --scheduler-weekend-th-text: #f87171;
-  --scheduler-other-th-bg: #111820;
-  --scheduler-other-th-text: #3d5068;
-  --scheduler-weekend-col-bg: #180f12;
-  /* 주말 구분(다크 전용) — 토요일: 블루 틴트 / 일요일·공휴일: 레드 틴트
-     선 없이 컬럼 배경만으로 구분 (surface #182030 대비 인지되는 수준) */
-  --scheduler-sat-col-bg: #1b2947;
-  --scheduler-sat-th-bg: #223760;
-  --scheduler-sat-text: #8ab0ff;
-  --scheduler-sun-col-bg: #301d27;
-  --scheduler-sun-th-bg: #3d2430;
-  --scheduler-sun-text: #ff8585;
-  --scheduler-other-col-bg: #0d1118;
-  --scheduler-hover-col-bg: #243449;
-  --scheduler-section-bg: linear-gradient(180deg, #1e2d42 0%, #182030 100%);
-  --scheduler-row-label-bg: #111c2c;
-  --scheduler-total-row-bg: #1c3454;
-  --scheduler-week-total-bg: #1a2d48;
-  --scheduler-print-btn-bg: #182030;
-  --scheduler-print-btn-hover-bg: #1e2d42;
-  --scheduler-print-btn-border: #2a3a52;
-  --scheduler-print-btn-text: #98a4b6;
-  --scheduler-print-btn-hover-text: #e6ebf2;
-  --scheduler-accom-bg: #1a1428;
-  --scheduler-group-divider: #334a66;
-  --scheduler-room-border: #ea7a94;
-  --scheduler-drag-sel-bg: #23385c;
-  --scheduler-drag-sel-border: #4d7fc7;
-  color-scheme: dark;
-}
-
-.loadingOverlay {
+  /* 본문 영역(padding 24px)을 덮어 배경을 칠하고 padding 32px 40px 을 맞춘다 */
+  margin: -24px;
+  padding: 10px 24px 48px;
+  min-height: calc(100vh - var(--header-height));
+  background: var(--d-bg);
+  color: var(--d-text);
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 80px 0;
-  background: var(--scheduler-bg);
-  border-radius: 8px;
-  opacity: 0.85;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.loadingText {
-  font-size: 14px;
-  color: var(--scheduler-text-sub);
+:global([data-theme='dark']) .schedulerPage {
+  --d-bg: #100c19;
+  --d-surface: #19142a;
+  --d-surface2: #1e1833;
+  --d-line: #2c2542;
+  --d-line2: #241e38;
+  --d-grid: #3d3459;
+  --d-text: #ede9f7;
+  --d-muted: #a59fbd;
+  --d-accent: #ff6aa2;
+  --d-on-accent: #1a1226;
+  --d-accent-soft: rgba(255, 106, 162, 0.14);
+  --d-warn-fg: #f4c460;
+  --d-accent-line: rgba(255, 106, 162, 0.38);
+  --d-sat: #86a9ff;
+  --d-sun: #ff8396;
+  --d-weekend: rgba(255, 255, 255, 0.05);
+  --d-today: rgba(255, 106, 162, 0.12);
+  --d-outside: rgba(0, 0, 0, 0.1);
+  --d-lodge: rgba(255, 106, 162, 0.05);
+  --d-shadow: none;
 }
 
-.header {
+/* ── 헤더 ── */
+.pageHead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pageTitle { font-size: 20px; font-weight: 700; color: var(--d-text); }
+.pageDesc { font-size: 12px; color: var(--d-muted); }
+
+/* ── 툴바 ── */
+.toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
   position: sticky;
   top: var(--header-height);
   z-index: 100;
-  background: var(--scheduler-bg);
-  padding: 6px 0 8px;
-  margin-top: -2px;
+  background: var(--d-bg);
+  padding: 4px 0;
+  margin: -4px 0;
 }
 
-.headerActions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
+.toolbarLeft,
+.toolbarRight { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-.monthNavigatorCard {
-  display: flex;
+.btn {
+  height: 30px;
+  padding: 0 11px;
+  display: inline-flex;
   align-items: center;
-  padding: 6px 8px;
-  border: 1px solid var(--scheduler-border);
+  gap: 6px;
   border-radius: 8px;
-  background: var(--scheduler-surface);
-  box-shadow: var(--scheduler-shadow);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--d-surface);
+  color: var(--d-text);
+  border: 1px solid var(--d-line);
+  transition: background 0.15s;
 }
+.btn:hover { background: var(--d-surface2); }
+.btn:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 2px; }
 
-.title {
-  font-size: 18px;
+.btnPrimary {
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  border-color: var(--d-accent);
   font-weight: 700;
 }
+.btnPrimary:hover { background: var(--d-accent); filter: brightness(0.95); }
 
-.nav {
+/* ── 안내 한 줄 ── */
+.hint {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 5px;
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--d-muted);
+  white-space: nowrap;
 }
 
-.navBtn {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--scheduler-border);
-  border-radius: 6px;
-  background: var(--surface);
-  font-size: 16px;
+.kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid var(--d-grid);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--d-surface);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--d-text);
+}
+
+.loading {
+  text-align: center;
+  padding: 80px 0;
+  color: var(--d-muted);
+  font-size: 14px;
+}
+
+/* ── 기간 카드 ── */
+.card {
+  background: var(--d-surface);
+  border: 1px solid var(--d-grid);
+  border-radius: 12px;
+  box-shadow: var(--d-shadow);
+  overflow: hidden;
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 16px;
+  border-bottom: 1px solid var(--d-grid);
+}
+.cardTitle { font-size: 14px; font-weight: 700; color: var(--d-text); }
+.cardNote { font-size: 11px; color: var(--d-muted); }
+
+.scroll { overflow-x: auto; }
+.gantt { min-width: 940px; }
+
+/* 모든 줄이 같은 2열 구조: 라벨 176px + 날짜 N칸 */
+.row {
+  display: grid;
+  grid-template-columns: 200px repeat(var(--n), minmax(0, 1fr));
+  border-bottom: 1px solid var(--d-grid);
+}
+.row:last-child { border-bottom: 0; }
+
+.dragging { user-select: none; }
+
+/* 날짜 헤더 줄 */
+.headRow {
+  background: var(--d-surface2);
+}
+
+.headLabel {
+  grid-column: 1;
+  align-self: end;
+  padding: 0 10px 3px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--d-muted);
+}
+
+.dayHead {
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  border-left: 1px solid var(--d-grid);
+}
+.dayHeadOutside { opacity: 0.55; }
+
+.dateNum {
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  color: var(--d-text);
+}
+.dayName { font-size: 11px; font-weight: 500; line-height: 1.2; color: var(--d-text); }
+
+.sat .dateNum, .sat .dayName { color: var(--d-sat); }
+.sun .dateNum, .sun .dayName { color: var(--d-sun); }
+
+.todayHead .dateNum { background: var(--d-accent); color: var(--d-on-accent); }
+
+/* 열 배경 — 헤더부터 마지막 줄까지 같은 규칙. today 가 가장 위 */
+.weekend { background: var(--d-weekend); }
+.outside { background: var(--d-outside); }
+.today { background: var(--d-today); }
+
+/* 새 달 1일 칸 왼쪽 경계선 */
+.monthStart { border-left: 1px solid var(--d-muted) !important; }
+
+/* 호실 줄 */
+.roomRow { min-height: 28px; }
+
+/* 그룹(강의실 종류) — 구분 셀을 그룹 높이만큼 묶어 세로 가운데에 둔다 */
+.group {
+  position: relative;
+  border-top: 1px solid var(--d-grid);
+}
+.typeCell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 64px;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
-}
-
-.navBtn:hover {
-  background: var(--scheduler-surface-hover);
-}
-
-.monthLabel {
-  font-size: 16px;
-  font-weight: 700;
-  min-width: 100px;
   text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--d-muted);
+  background: var(--d-surface2);
+  border-right: 1px solid var(--d-grid);
+}
+.typeLodge {
+  color: var(--d-accent);
+  background:
+    linear-gradient(var(--d-lodge), var(--d-lodge)),
+    var(--d-surface2);
 }
 
-/* ── 2주 묶음 블록 ── */
-.halfBlock {
-  margin-bottom: 24px;
+.label {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: baseline;
+  align-self: center;
+  gap: 6px;
+  padding: 0 10px 0 76px;
+}
+.roomNo { font-size: 13px; font-weight: 700; color: var(--d-text); line-height: 1.2; }
+.roomCap { font-size: 11.5px; color: var(--d-muted); line-height: 1.2; }
+
+.cell {
+  grid-row: 1;
+  min-height: 100%;
+  border-left: 1px solid var(--d-grid);
+}
+.cellFree { cursor: cell; }
+
+/* 드래그/⌘ 다중 선택된 칸 */
+.dragSel {
+  background: var(--d-accent-soft) !important;
+  box-shadow: inset 0 0 0 1px var(--d-accent);
 }
 
-/* ── 표 래퍼 ── */
-.tableWrap {
-  overflow: hidden;
-  background: var(--scheduler-surface);
-  border: 1px solid var(--scheduler-border);
-  border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-}
-
-.tableScroll {
-  overflow-x: auto;
-}
-
-.sectionTitle {
+/* 숙박 줄 */
+.lodgeRow { background: var(--d-lodge); }
+.lodgeLabelMuted { font-size: 11.5px; color: var(--d-muted); }
+.countRow { min-height: 28px; }
+.count {
+  grid-row: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 14px;
+  justify-content: center;
+  border-left: 1px solid var(--d-grid);
   font-size: 12px;
-  font-weight: 700;
-  color: var(--scheduler-text-sub);
-  background: var(--scheduler-section-bg);
-  border-bottom: 1px solid var(--scheduler-border);
-  letter-spacing: 0.01em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--d-text);
 }
 
-.sectionTitle::before {
-  content: '';
-  display: inline-block;
-  width: 3px;
-  height: 12px;
-  border-radius: 2px;
-  background: #7b9dc4;
-  flex-shrink: 0;
-}
-
-/* ── 공통 테이블 ── */
-.table {
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 12px;
-  white-space: nowrap;
-  table-layout: fixed;
-  cursor: default !important;
-  background: var(--scheduler-surface);
-  color: var(--scheduler-text);
-}
-
-/* 헤더 */
-.table th {
-  background: var(--scheduler-table-header-bg);
-  padding: 5px 2px;
-  text-align: center;
-  font-weight: 700;
-  border-top: 1px solid var(--scheduler-table-header-border);
-  border-left: 1px solid var(--scheduler-table-header-border);
-  border-bottom: 1px solid var(--scheduler-table-header-border);
-  cursor: default !important;
-  color: var(--scheduler-text);
-}
-.table th:last-child {
-  border-right: 1px solid var(--scheduler-table-header-border);
-}
-
-.table th.todayTh {
-  background: var(--scheduler-today-th-bg);
-  color: var(--scheduler-today-th-text);
-}
-
-.weekendTh {
-  background: var(--scheduler-weekend-th-bg) !important;
-  color: var(--scheduler-weekend-th-text) !important;
-}
-
-/* 조/중/석 서브컬럼 헤더 */
-.mealSubTh {
-  font-size: 9px !important;
-  font-weight: 600 !important;
-  padding: 3px 1px !important;
-  color: var(--scheduler-text-sub);
-}
-
-.dateNum {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.dayLabel {
-  font-size: 11px;
-  font-weight: 400;
-  margin-top: 1px;
-  color: inherit;
-}
-
-.weekendCol {
-  background: var(--scheduler-weekend-col-bg) !important;
-}
-
-/* ── 주말 구분 (라이트·다크 공통) ──
-   토요일은 블루 틴트, 일요일·공휴일은 레드 틴트. 선 없이 컬럼 배경만으로 구분한다.
-   틴트는 예약 바가 묻히지 않을 정도로만 얹음. 색값은 모드별 --scheduler-sat/sun-* 변수. */
-.schedulerPage .satTh {
-  background: var(--scheduler-sat-th-bg) !important;
-  color: var(--scheduler-sat-text) !important;
-}
-.schedulerPage .satCol {
-  background: var(--scheduler-sat-col-bg) !important;
-}
-.schedulerPage .sunTh {
-  background: var(--scheduler-sun-th-bg) !important;
-  color: var(--scheduler-sun-text) !important;
-}
-.schedulerPage .sunCol {
-  background: var(--scheduler-sun-col-bg) !important;
-}
-
-/* ── 강의실 드래그로 사각형(호실 × 날짜) 선택 ── */
-.dragging {
-  user-select: none;
-}
-.dragSel {
-  background: var(--scheduler-drag-sel-bg) !important;
-  box-shadow: inset 0 0 0 1px var(--scheduler-drag-sel-border);
-}
-
-.dragHint {
-  font-size: 11px;
-  color: var(--scheduler-text-sub);
+/* ── 예약 바 ── */
+/* --c: "r,g,b" / --fg-light, --fg-dark (페이지에서 주입) */
+.bar {
+  grid-row: 1;
+  z-index: 1;
   align-self: center;
+  height: 23px;
+  margin: 0 2px;
+  padding: 0 7px;
+  border-radius: 6px;
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 21px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  /* 칸 경계선이 비쳐 보이지 않도록 단색 바탕 위에 옅은 색을 올린다 */
+  background:
+    linear-gradient(rgba(var(--c), 0.16), rgba(var(--c), 0.16)),
+    var(--d-surface);
+  border: 1px solid rgba(var(--c), 0.5);
+  color: var(--fg-light);
 }
 
-/* ⌘/Ctrl+드래그 누적 선택 하단 바 */
+:global([data-theme='dark']) .bar {
+  background:
+    linear-gradient(rgba(var(--c), 0.3), rgba(var(--c), 0.3)),
+    var(--d-surface);
+  border-color: rgba(var(--c), 0.55);
+  color: var(--fg-dark);
+}
+
+.bar:hover { filter: brightness(0.97); }
+.bar:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 1px; }
+
+/* 앞/뒤로 이어지는 예약은 해당 쪽 모서리를 직각으로 */
+.barCutL { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.barCutR { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+
+/* ── ⌘/Ctrl+드래그 누적 선택 하단 바 ── */
 .multiSelBar {
   position: fixed;
   bottom: 20px;
@@ -320,302 +346,66 @@
   align-items: center;
   gap: 12px;
   padding: 9px 10px 9px 16px;
-  background: var(--scheduler-surface);
-  border: 1px solid var(--scheduler-border);
-  border-radius: 10px;
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
   font-size: 13px;
-  color: var(--scheduler-text);
+  color: var(--d-text);
 }
-.multiSelCount {
-  font-weight: 700;
-}
-.multiSelHint {
-  font-size: 11px;
-  color: var(--scheduler-text-sub);
-}
+.multiSelCount { font-weight: 700; }
+.multiSelHint { font-size: 12px; color: var(--d-muted); }
 .multiSelBar button {
-  height: 30px;
-  padding: 0 14px;
-  border-radius: 7px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.multiSelCommit {
-  background: var(--scheduler-drag-sel-border);
-  color: #fff;
-}
-.multiSelCancel {
-  background: transparent;
-  border: 1px solid var(--scheduler-border);
-  color: var(--scheduler-text-sub);
-}
-
-/* 구분 헤더 셀 */
-.thType {
-  min-width: 38px !important;
-}
-.thRoom {
-  min-width: 28px !important;
-}
-.thCap {
-  min-width: 20px !important;
-}
-.thOrg {
-  min-width: 80px !important;
-  text-align: left !important;
-  padding-left: 8px !important;
-}
-.thTotal {
-  min-width: 40px !important;
-  font-size: 11px !important;
-}
-
-/* 일반 셀 */
-.table td {
-  border-top: 1px solid var(--scheduler-soft-border);
-  border-left: 1px solid var(--scheduler-soft-border);
-  padding: 1px 2px;
-  height: 26px;
-  vertical-align: middle;
-  text-align: center;
-  cursor: default !important;
-  color: var(--scheduler-text);
-}
-
-/* 행 호버 시 호실 셀 강조 */
-.table tbody tr:hover .tdRoom,
-.table tbody tr:hover .tdCap {
-  background: var(--scheduler-hover-col-bg) !important;
-  transition: background 0.1s;
-}
-
-/* 구분 셀 */
-.tdType {
-  font-weight: 700;
-  font-size: 12px;
-  text-align: center;
-}
-
-.tdRoom {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--scheduler-text);
-  text-align: center;
-}
-
-.tdCap {
-  font-size: 11px;
-  color: var(--scheduler-text-sub);
-  text-align: center;
-}
-
-/* 강의실 셀 */
-.classCell {
-  text-align: center;
-}
-
-/* 강의실 구분별 배경 (라이트 전용, 아주 연한 tint) */
-.bgDaeGang { background: #f8faff; }  /* 대강의실 — 연한 블루 */
-.bgJungGang { background: #faf8ff; } /* 중강의실 — 연한 퍼플 */
-.bgSoGang { background: #f5fbef; }   /* 소강의실 — 연한 옐로우그린 (웜) */
-.bgBunim { background: #eaf7f3; }    /* 분임실 — 연한 민트/틸 (쿨) */
-.bgDamok { background: #faf8ff; }    /* 다목적실 — 연한 라벤더 */
-
-/* 다크 모드: 그룹 행 배경 제거 → 균일한 surface로 통일 */
-[data-theme='dark'] .schedulerPage .bgDaeGang,
-[data-theme='dark'] .schedulerPage .bgJungGang,
-[data-theme='dark'] .schedulerPage .bgSoGang,
-[data-theme='dark'] .schedulerPage .bgBunim,
-[data-theme='dark'] .schedulerPage .bgDamok,
-[data-theme='dark'] .schedulerPage .bgAccom {
-  background: var(--scheduler-surface) !important;
-}
-
-
-/* 예약 바 */
-.bar {
-  display: block;
-  border-radius: 3px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 3px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin: 0 auto;
-}
-
-/* 다크 모드: 형광 방지 — 채도·밝기 낮춤 */
-[data-theme='dark'] .schedulerPage .bar {
-  filter: saturate(0.75) brightness(0.88);
-  opacity: 0.95;
-}
-
-/* 오늘 열 */
-.todayCol {
-  background: var(--scheduler-surface-2) !important;
-}
-
-/* 이전달/다음달 날짜 */
-.otherMonthTh {
-  background: var(--scheduler-other-th-bg) !important;
-  color: var(--scheduler-other-th-text) !important;
-}
-.otherMonthCol {
-  background: var(--scheduler-other-col-bg) !important;
-}
-
-/* 강의실 타입 그룹 구분선 */
-.groupDivider {
-  border-top: 2px solid var(--scheduler-group-divider) !important;
-}
-
-/* 숙박 섹션 강조 */
-.bgAccom {
-  background: var(--scheduler-accom-bg) !important;
-}
-.roomTopBorder {
-  border-top: 2px solid var(--scheduler-room-border) !important;
-}
-.roomBottomBorder {
-  border-bottom: 2px solid var(--scheduler-room-border) !important;
-}
-.roomLeftBorder {
-  border-left: 2px solid var(--scheduler-room-border) !important;
-}
-.roomRightBorder {
-  border-right: 2px solid var(--scheduler-room-border) !important;
-}
-.roomInnerRow {
-  border-top: none !important;
-}
-.table td:last-child {
-  border-right: 1px solid var(--scheduler-soft-border);
-}
-.table tr:last-child td {
-  border-bottom: 1px solid var(--scheduler-soft-border);
-}
-.roomCornerTL {
-  border-top-left-radius: 0px;
-}
-.roomCornerTR {
-  border-top-right-radius: 0px;
-}
-.roomCornerBL {
-  border-bottom-left-radius: 7px;
-}
-.roomCornerBR {
-  border-bottom-right-radius: 7px;
-}
-
-/* 숙박 count */
-.roomCount {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--scheduler-text);
-}
-
-.roomTotalCell {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--scheduler-text);
-  text-align: center;
-  white-space: nowrap;
-}
-
-/* 단체명 셀 */
-.tdOrg {
-  font-size: 11px;
-  font-weight: 700;
-  text-align: left;
-  padding-left: 6px;
-  background: var(--scheduler-row-label-bg);
-  vertical-align: middle;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mealCell {
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.confirmed {
-  color: #f59aa8;
-}
-.pending {
-  color: #7dd3a7;
-}
-
-/* 합계 / 식수계 */
-.totalRow td {
-  background: var(--scheduler-total-row-bg);
-  font-weight: 700;
-  font-size: 11px;
-  color: var(--scheduler-text);
-  text-align: center;
-}
-
-.totalLabel {
-  text-align: center !important;
-  font-weight: 700 !important;
-}
-
-.weekTotalCell {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--scheduler-text);
-  text-align: center;
-  background: var(--scheduler-week-total-bg);
-}
-
-/* 데이터 없음 */
-.emptyCell {
-  text-align: center;
-  color: var(--scheduler-text-sub);
-  font-size: 13px;
-  padding: 16px !important;
-}
-
-/* 인쇄 전용 제목 — 화면에서는 숨김 */
-.printTitle {
-  display: none;
-}
-
-/* 인쇄 버튼 */
-.printBtn {
   height: 32px;
   padding: 0 14px;
-  background: var(--scheduler-print-btn-bg);
-  color: var(--scheduler-print-btn-text);
-  border: 1px solid var(--scheduler-print-btn-border);
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-weight: 700;
 }
-.printBtn:hover {
-  background: var(--scheduler-print-btn-hover-bg);
-  border-color: var(--scheduler-print-btn-border);
-  color: var(--scheduler-print-btn-hover-text);
-}
+.multiSelCommit { background: var(--d-accent); color: var(--d-on-accent); }
+.multiSelCancel { background: transparent; border: 1px solid var(--d-line); color: var(--d-muted); }
 
-/* ── A3 가로 인쇄 ── */
+/* 인쇄 전용 제목 — 화면에서는 숨김 */
+.printTitle { display: none; }
+
+/* ── A3 가로 인쇄 — 항상 라이트 테마로 ── */
 @media print {
   @page {
     size: A3 landscape;
     margin: 15mm 10mm 10mm;
   }
 
-  .header {
-    display: none !important;
+  .schedulerPage,
+  :global([data-theme='dark']) .schedulerPage {
+    --d-bg: #ffffff;
+    --d-surface: #ffffff;
+    --d-surface2: #faf9fd;
+    --d-line: #e6e3ee;
+    --d-line2: #eeebf4;
+    --d-grid: #d3cfe0;
+    --d-text: #1c1829;
+    --d-muted: #615d75;
+    --d-accent: #d0245f;
+    --d-on-accent: #ffffff;
+    --d-accent-soft: #fde9f0;
+    --d-sat: #2d5fd0;
+    --d-sun: #cc2a4d;
+    --d-weekend: rgba(60, 40, 120, 0.06);
+    --d-today: rgba(208, 36, 95, 0.09);
+    --d-outside: rgba(0, 0, 0, 0.025);
+    --d-lodge: rgba(208, 36, 95, 0.035);
+    --d-shadow: none;
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    gap: 6mm;
+    color-scheme: light;
   }
+
+  .pageHead,
+  .toolbar,
+  .hint,
+  .multiSelBar { display: none !important; }
 
   .printTitle {
     display: block;
@@ -623,50 +413,21 @@
     font-size: 26px;
     font-weight: 700;
     margin-top: 8mm;
-    margin-bottom: 20mm;
+    margin-bottom: 14mm;
     color: #000;
   }
 
-  .printBtn {
-    display: none !important;
-  }
-
-  .halfBlock {
+  .card {
+    width: 100%;
     break-inside: avoid;
-    margin-bottom: 8mm;
+    border-radius: 0;
   }
 
-  .tableWrap {
-    overflow: visible !important;
-    border: none !important;
-    border-radius: 0 !important;
-    margin-bottom: 4mm;
-  }
+  .scroll { overflow: visible; }
 
-  .table {
-    font-size: 10px !important;
-  }
-
-  .table th,
-  .table td {
-    height: 20px !important;
-    padding: 1px 2px !important;
-  }
-
-  .dateNum {
-    font-size: 11px !important;
-  }
-
-  .dayLabel {
-    font-size: 9px !important;
-  }
-
-  .bar {
-    font-size: 10px !important;
-    padding: 1px 2px !important;
-  }
-
-  .sectionTitle {
-    display: none;
-  }
+  .roomRow { min-height: 22px; }
+  .bar { height: 17px; line-height: 15px; font-size: 10px; }
+  .roomNo { font-size: 12px; }
+  .dateNum { font-size: 11px; }
+  .dayName { font-size: 9px; }
 }
