@@ -799,11 +799,19 @@ public class ExcelServiceImpl implements ExcelService {
         }
     }
 
+    /** 예약정보 시트 16열 이후 확장 열 (우편번호 … 정산 방법) */
+    private static final String[] EXTRA_HEADERS = {"우편번호", "사업자번호", "대표이사", "현장연락처2", "현장이메일",
+            "정산담당자", "정산연락처", "정산이메일", "정산방법"};
+    private static final int EXTRA_START_COL = 16;
+
     private void writeReservationSheet(XSSFWorkbook wb, CellStyle headerStyle,
             List<Reservation> list) {
         XSSFSheet sheet = wb.createSheet("예약정보");
-        String[] headers = {"예약코드", "단체명", "목적", "인원수", "담당자", "연락처1", "연락처2", "이메일", "시작일", "종료일",
+        // 16열까지는 기본 열, 이후는 확장 열 — 가져오기에서 확장 열이 있는 파일만 반영한다
+        String[] base = {"예약코드", "단체명", "목적", "인원수", "담당자", "연락처1", "연락처2", "이메일", "시작일", "종료일",
                 "컬러코드", "상태", "주소", "현장담당자", "현장연락처", "메모"};
+        String[] headers = java.util.stream.Stream.concat(java.util.Arrays.stream(base),
+                java.util.Arrays.stream(EXTRA_HEADERS)).toArray(String[]::new);
         writeHeader(sheet, headerStyle, headers);
 
         int rowNum = 1;
@@ -826,6 +834,15 @@ public class ExcelServiceImpl implements ExcelService {
             setExportCell(row, col++, r.getSiteManager());
             setExportCell(row, col++, r.getSiteManagerPhone());
             setExportCell(row, col++, r.getMemo());
+            setExportCell(row, col++, r.getCompanyZipCode());
+            setExportCell(row, col++, r.getBusinessNumber());
+            setExportCell(row, col++, r.getCeoName());
+            setExportCell(row, col++, r.getSiteManagerPhone2());
+            setExportCell(row, col++, r.getSiteManagerEmail());
+            setExportCell(row, col++, r.getBillingManager());
+            setExportCell(row, col++, r.getBillingManagerPhone());
+            setExportCell(row, col++, r.getBillingManagerEmail());
+            setExportCell(row, col++, r.getPaymentMethod());
         }
         autoSizeColumns(sheet, headers.length);
     }
@@ -951,6 +968,11 @@ public class ExcelServiceImpl implements ExcelService {
                 throw new IllegalArgumentException("'예약정보' 시트를 찾을 수 없습니다.");
             }
 
+            // 이전 버전 파일(16열)에는 확장 열이 없으므로, 있을 때만 반영해 기존 값을 지우지 않는다
+            Row headerRow = resSheet.getRow(0);
+            boolean hasExtras = headerRow != null
+                    && "우편번호".equals(importStr(headerRow, EXTRA_START_COL));
+
             for (int i = 1; i <= resSheet.getLastRowNum(); i++) {
                 Row row = resSheet.getRow(i);
                 if (row == null)
@@ -990,6 +1012,14 @@ public class ExcelServiceImpl implements ExcelService {
                                 purpose, people, customer, phone1, phone2, email, startDate,
                                 endDate, colorCode, status, address, siteManager, sitePhone, memo));
                         created++;
+                    }
+
+                    if (hasExtras) {
+                        int c = EXTRA_START_COL;
+                        res.updateImportExtras(importStr(row, c), importStr(row, c + 1),
+                                importStr(row, c + 2), importStr(row, c + 3), importStr(row, c + 4),
+                                importStr(row, c + 5), importStr(row, c + 6), importStr(row, c + 7),
+                                importStr(row, c + 8));
                     }
 
                     codeMap.put(code, res);

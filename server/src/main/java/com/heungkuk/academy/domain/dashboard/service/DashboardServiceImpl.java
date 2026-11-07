@@ -58,10 +58,20 @@ public class DashboardServiceImpl implements DashboardService {
         double avg = 0;
         long count = stats.getTotal() != null ? stats.getTotal() : 0;
         if (count > 0) {
-            double sum = safeAvg(stats.getStaffService()) + safeAvg(stats.getCleanliness())
-                    + safeAvg(stats.getFacilities()) + safeAvg(stats.getCafeteria())
-                    + safeAvg(stats.getPricing());
-            avg = Math.round((sum / 5.0) * 10.0) / 10.0;
+            // 응답이 하나도 없는 항목(예: 식당 전원 '이용 안함')은 0점이 아니라 제외하고 평균낸다
+            double[] items = {
+                    safeAvg(stats.getStaffService()), safeAvg(stats.getCleanliness()),
+                    safeAvg(stats.getFacilities()), safeAvg(stats.getCafeteria()),
+                    safeAvg(stats.getPricing())};
+            double sum = 0;
+            int answered = 0;
+            for (double v : items) {
+                if (v > 0) {
+                    sum += v;
+                    answered++;
+                }
+            }
+            avg = answered > 0 ? Math.round((sum / answered) * 10.0) / 10.0 : 0;
         }
 
         return KpiSection.builder()

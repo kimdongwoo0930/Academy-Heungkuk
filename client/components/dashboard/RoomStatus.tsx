@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { TodayClassroomItem } from '@/types/dashboard';
 import { CLASSROOM_LIST } from '@/lib/constants/classrooms';
-import { isAdmin } from '@/lib/utils/auth';
+import { TodayClassroomItem } from '@/types/dashboard';
 import styles from './RoomStatus.module.css';
 
 interface Props {
@@ -12,51 +10,66 @@ interface Props {
   onItemClick?: (reservationId: number) => void;
 }
 
+const TYPE_ORDER = ['대강의실', '중강의실', '소강의실', '분임실', '다목적실'];
+
+const typeOf = (name: string) => name.split(' ')[0];
+
+const SORTED_ROOMS = [...CLASSROOM_LIST].sort(
+  (a, b) => TYPE_ORDER.indexOf(typeOf(a.name)) - TYPE_ORDER.indexOf(typeOf(b.name)),
+);
+
+const STATE_LABEL = { available: '사용 가능', inUse: '사용 중', disabled: '사용불가' } as const;
+
 export default function RoomStatus({ todayClassrooms, disabledClassrooms = [], onItemClick }: Props) {
-  const [admin, setAdmin] = useState(false);
-
-  useEffect(() => {
-    setAdmin(isAdmin());
-  }, []);
-
-  const occupiedMap = new Map(
-    todayClassrooms.map((c) => [c.classroom, { org: c.organization, id: c.reservationId }])
-  );
+  const occupiedMap = new Map(todayClassrooms.map((c) => [c.classroom, { org: c.organization, id: c.reservationId }]));
   const disabledSet = new Set(disabledClassrooms);
-  const occupiedCount = CLASSROOM_LIST.filter((r) => occupiedMap.has(r.code)).length;
+  const inUseCount = SORTED_ROOMS.filter((r) => occupiedMap.has(r.code) && !disabledSet.has(r.code)).length;
 
   return (
-    <div className={styles.card}>
+    <section className={styles.card}>
       <div className={styles.head}>
-        <span className={styles.title}>오늘 강의실 현황</span>
-        <span className={styles.sub}>사용 중 {occupiedCount} / 전체 {CLASSROOM_LIST.length}</span>
+        <h2 className={styles.title}>오늘 강의실 현황</h2>
+        <span className={styles.sub}>
+          사용 중 <strong>{inUseCount}</strong> / 전체 {SORTED_ROOMS.length}
+        </span>
       </div>
       <div className={styles.grid}>
-        {CLASSROOM_LIST.map((room) => {
+        {SORTED_ROOMS.map((room) => {
           const occupied = occupiedMap.get(room.code);
-          const isDisabled = disabledSet.has(room.code);
-          const clickable = !!occupied && !isDisabled && admin && !!onItemClick;
-
-          let stateClass = styles.available;
-          if (isDisabled) stateClass = styles.disabled;
-          else if (occupied) stateClass = styles.occupied;
-
-          return (
-            <div
-              key={room.code}
-              className={`${styles.item} ${stateClass} ${clickable ? styles.clickable : ''}`}
-              onClick={() => clickable && onItemClick!(occupied!.id)}
-            >
+          const state = disabledSet.has(room.code) ? 'disabled' : occupied ? 'inUse' : 'available';
+          const clickable = state === 'inUse' && !!onItemClick;
+          const body = (
+            <>
               <div className={styles.name}>{room.name}</div>
               <div className={styles.cap}>{room.capacity}인</div>
               <div className={styles.status}>
-                ● {isDisabled ? '사용불가' : occupied ? '사용 중' : '사용 가능'}
+                <span className={styles.dot} aria-hidden="true" />
+                {STATE_LABEL[state]}
               </div>
-              <div className={styles.org}>{occupied && !isDisabled ? occupied.org : ''}</div>
+              {state === 'inUse' && occupied && (
+                <div className={styles.org} title={occupied.org}>
+                  {occupied.org}
+                </div>
+              )}
+            </>
+          );
+
+          return clickable ? (
+            <button
+              key={room.code}
+              type="button"
+              className={`${styles.item} ${styles[state]} ${styles.clickable}`}
+              onClick={() => onItemClick!(occupied!.id)}
+            >
+              {body}
+            </button>
+          ) : (
+            <div key={room.code} className={`${styles.item} ${styles[state]}`}>
+              {body}
             </div>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }

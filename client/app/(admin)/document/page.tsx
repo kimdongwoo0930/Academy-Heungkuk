@@ -2,7 +2,7 @@
 
 import { useReservationSearch } from '@/hooks/useReservationSearch';
 import { downloadConfirmation, downloadEstimate, downloadTrade } from '@/lib/api/reservation';
-import { STATUS_COLOR } from '@/lib/constants/status';
+import { Check, FileText, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import styles from './page.module.css';
 
@@ -84,161 +84,161 @@ export default function DocumentPage() {
 
   const handleSearch = () => { setDebouncedKeyword(keyword); setPage(0); };
 
+  const hasFilter = !!(keyword || status || startDate || endDate);
+
+  const docButtons = (r: { id: number; organization: string }) => [
+    { label: '견적서', busy: downloadingId === r.id, run: () => handleEstimate(r.id, r.organization) },
+    { label: '확인서', busy: confirmingId === r.id, run: () => handleConfirmation(r.id, r.organization) },
+    { label: '거래명세서', busy: tradingId === r.id, run: () => handleTrade(r.id, r.organization) },
+  ];
+
   return (
     <div className={styles.page}>
+      <div className={styles.pageHead}>
+        <h1 className={styles.pageTitle}>문서 관리</h1>
+        <p className={styles.pageDesc}>예약별로 견적서, 확인서, 거래명세서를 발급합니다</p>
+      </div>
+
       <div className={styles.filterCard}>
         <div className={styles.filterRow}>
-          <span className={styles.filterLabel}>검색옵션</span>
-          <div className={styles.statusCheckboxes}>
-            {STATUS_OPTIONS.map((s) => (
-              <label key={s} className={styles.statusCheckLabel}>
-                <input
-                  type="checkbox"
-                  checked={s === '전체' ? status === '' : status === s}
-                  onChange={() => handleStatusChange(s)}
-                />
-                {s}
-              </label>
-            ))}
+          <span className={styles.filterLabel}>상태</span>
+          <div className={styles.chips} role="group" aria-label="예약 상태 필터">
+            {STATUS_OPTIONS.map((s) => {
+              const active = s === '전체' ? status === '' : status === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  className={`${styles.chip} ${active ? styles.chipActive : ''}`}
+                  aria-pressed={active}
+                  onClick={() => handleStatusChange(s)}
+                >
+                  {active && <Check size={13} aria-hidden="true" />}
+                  {s}
+                </button>
+              );
+            })}
           </div>
           <div className={styles.filterRowRight}>
+            <span className={styles.filterLabel}>이용일</span>
             <input
               type="date"
               className={styles.dateInput}
+              aria-label="이용 시작일"
               value={startDate}
               onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
             />
-            <span className={styles.dateSep}>~</span>
+            <span className={styles.dateSep}>–</span>
             <input
               type="date"
               className={styles.dateInput}
+              aria-label="이용 종료일"
               value={endDate}
               onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
             />
-            {(keyword || status || startDate || endDate) && (
-              <button className={styles.resetBtn} onClick={handleReset}>초기화</button>
+            {hasFilter && (
+              <button type="button" className={styles.resetBtn} onClick={handleReset}>초기화</button>
             )}
           </div>
         </div>
-        <div className={styles.filterDivider} />
-        <div className={styles.filterRow}>
-          <span className={styles.filterLabel}>검색명</span>
-          <input
-            className={styles.searchInput}
-            placeholder="단체명 / 담당자를 입력하세요."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-          />
-          <button className={styles.searchBtn} onClick={handleSearch}>검색</button>
+        <div className={styles.searchRow}>
+          <label className={styles.searchField}>
+            <Search size={16} aria-hidden="true" />
+            <input
+              className={styles.searchInput}
+              placeholder="단체명 / 담당자를 입력하세요."
+              aria-label="문서 대상 검색"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+            />
+          </label>
+          <button type="button" className={styles.searchBtn} onClick={handleSearch}>검색</button>
         </div>
       </div>
 
-      {loading ? (
-        <div className={styles.empty}>불러오는 중...</div>
-      ) : reservations.length === 0 ? (
-        <div className={styles.empty}>검색 결과가 없습니다.</div>
-      ) : (
-        <>
-          <div className={styles.list}>
-            {reservations.map((r) => (
-              <div key={r.id} className={styles.card}>
-                <div className={styles.cardLeft}>
-                  <div className={styles.dot} style={{ backgroundColor: r.colorCode }} />
-                  <div className={styles.cardOrgBlock}>
-                    <div className={styles.org}>{r.organization}</div>
-                    <div className={styles.code}>{r.reservationCode}</div>
-                  </div>
-                  <div className={styles.cardDateBlock}>
-                    <span className={styles.cardDateRange}>{String(r.startDate)} ~ {String(r.endDate)}</span>
-                  </div>
-                  <div className={styles.cardCustomerBlock}>
-                    <span className={styles.cardFieldValue}>{r.customer}</span>
-                    <span className={styles.cardFieldSub}>{r.customerPhone}</span>
-                  </div>
-                  <div className={styles.cardPurposeBlock}>
-                    <span
-                      className={styles.statusBadge}
-                      style={{ backgroundColor: STATUS_COLOR[r.status] ?? '#888' }}
-                    >
-                      {r.status}
-                    </span>
-                    {r.people != null && <span className={styles.cardFieldSub}>{r.people}명</span>}
-                  </div>
-                </div>
-                <div className={styles.cardBtns}>
-                  <button
-                    className={styles.docBtn}
-                    disabled={downloadingId === r.id}
-                    onClick={() => handleEstimate(r.id, r.organization)}
-                  >
-                    {downloadingId === r.id ? '생성 중...' : '견적서'}
-                  </button>
-                  <button
-                    className={styles.docBtn}
-                    disabled={confirmingId === r.id}
-                    onClick={() => handleConfirmation(r.id, r.organization)}
-                  >
-                    {confirmingId === r.id ? '생성 중...' : '확인서'}
-                  </button>
-                  <button
-                    className={styles.docBtn}
-                    disabled={tradingId === r.id}
-                    onClick={() => handleTrade(r.id, r.organization)}
-                  >
-                    {tradingId === r.id ? '생성 중...' : '거래명세서'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>단체 / 예약코드</th>
+              <th>이용 기간</th>
+              <th>담당자</th>
+              <th>상태 / 인원</th>
+              <th>문서 발급</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} className={styles.emptyCell}>불러오는 중...</td></tr>
+            ) : reservations.length === 0 ? (
+              <tr><td colSpan={5} className={styles.emptyCell}>검색 결과가 없습니다.</td></tr>
+            ) : (
+              reservations.map((r) => (
+                <tr key={r.id}>
+                  <td>
+                    <div className={styles.orgCell}>
+                      <span className={styles.dot} style={{ backgroundColor: r.colorCode }} aria-hidden="true" />
+                      <div className={styles.orgBlock}>
+                        <div className={styles.org} title={r.organization}>{r.organization}</div>
+                        <div className={styles.code}>{r.reservationCode}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className={styles.num}>{String(r.startDate)} ~ {String(r.endDate)}</td>
+                  <td>
+                    <div className={styles.customer}>{r.customer || '—'}</div>
+                    <div className={styles.sub}>{r.customerPhone || '—'}</div>
+                  </td>
+                  <td>
+                    <div className={styles.statusCell}>
+                      <span className={`${styles.badge} ${styles[r.status]}`}>{r.status}</span>
+                      {r.people != null && <span className={styles.sub}>{r.people}명</span>}
+                    </div>
+                  </td>
+                  <td>
+                    <div className={styles.docBtns}>
+                      {docButtons(r).map((b) => (
+                        <button
+                          key={b.label}
+                          type="button"
+                          className={styles.docBtn}
+                          disabled={b.busy}
+                          onClick={b.run}
+                          aria-label={`${r.organization} ${b.label} 발급`}
+                        >
+                          <FileText size={14} aria-hidden="true" />
+                          {b.busy ? '생성 중...' : b.label}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-          <div className={styles.pagination}>
+      {!loading && reservations.length > 0 && (
+        <div className={styles.pagination}>
+          <button type="button" className={styles.pageBtn} aria-label="첫 페이지" disabled={page === 0} onClick={() => setPage(0)}>«</button>
+          <button type="button" className={styles.pageBtn} aria-label="이전 페이지" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>‹</button>
+          {pageNumbers().map((n) => (
             <button
-              className={styles.pageBtn}
-              disabled={page === 0}
-              onClick={() => setPage(0)}
+              key={n}
+              type="button"
+              className={`${styles.pageBtn} ${n === page ? styles.pageBtnActive : ''}`}
+              aria-current={n === page ? 'page' : undefined}
+              onClick={() => setPage(n)}
             >
-              «
+              {n + 1}
             </button>
-            <button
-              className={styles.pageBtn}
-              disabled={page === 0}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              ‹
-            </button>
-
-            {pageNumbers().map((n) => (
-              <button
-                key={n}
-                className={`${styles.pageBtn} ${n === page ? styles.pageBtnActive : ''}`}
-                onClick={() => setPage(n)}
-              >
-                {n + 1}
-              </button>
-            ))}
-
-            <button
-              className={styles.pageBtn}
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              ›
-            </button>
-            <button
-              className={styles.pageBtn}
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage(totalPages - 1)}
-            >
-              »
-            </button>
-
-            <span className={styles.pageInfo}>
-              {page + 1} / {totalPages || 1}
-            </span>
-          </div>
-        </>
+          ))}
+          <button type="button" className={styles.pageBtn} aria-label="다음 페이지" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>›</button>
+          <button type="button" className={styles.pageBtn} aria-label="마지막 페이지" disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)}>»</button>
+          <span className={styles.pageInfo}>{page + 1} / {totalPages || 1}</span>
+        </div>
       )}
     </div>
   );

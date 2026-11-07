@@ -2,32 +2,32 @@
 
 import HeungkukLogo from '@/components/ui/HeungkukLogo';
 import { isAdmin } from '@/lib/utils/auth';
+import {
+    BarChart3,
+    BedDouble,
+    CalendarDays,
+    ClipboardCheck,
+    FileText,
+    LayoutDashboard,
+    LucideIcon,
+    Settings,
+    UtensilsCrossed,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { IconType } from 'react-icons';
-import {
-    BsBarChartFill,
-    BsBuildingFillCheck,
-    BsCalendarFill,
-    BsClipboardCheckFill,
-    BsFileEarmarkFill,
-    BsGearFill,
-    BsHouseDoorFill,
-} from 'react-icons/bs';
-import { MdRestaurant } from 'react-icons/md';
 import ProfileDropdown from './ProfileDropdown';
 import styles from './Sidebar.module.css';
 
-const NAV_ITEMS: { label: string; href: string; Icon: IconType; adminOnly: boolean; disabled: boolean; dividerAfter?: boolean }[] = [
-    { label: '대시보드', href: '/dashboard', Icon: BsHouseDoorFill, adminOnly: false, disabled: false },
-    { label: '일정 현황', href: '/scheduler', Icon: BsCalendarFill, adminOnly: false, disabled: false },
-    { label: '예약 관리', href: '/reservation', Icon: BsClipboardCheckFill, adminOnly: false, disabled: false },
-    { label: '문서 관리', href: '/document', Icon: BsFileEarmarkFill, adminOnly: true, disabled: false, dividerAfter: true },
-    { label: '식수 관리', href: '/restaurant', Icon: MdRestaurant, adminOnly: false, disabled: false },
-    { label: '숙박 현황', href: '/accommodation', Icon: BsBuildingFillCheck, adminOnly: false, disabled: false },
-    { label: '설문 관리', href: '/survey', Icon: BsBarChartFill, adminOnly: false, disabled: false, dividerAfter: true },
-    { label: '설정', href: '/settings', Icon: BsGearFill, adminOnly: true, disabled: false },
+const NAV_ITEMS: { label: string; href: string; Icon: LucideIcon; adminOnly: boolean; dividerAfter?: boolean }[] = [
+    { label: '대시보드', href: '/dashboard', Icon: LayoutDashboard, adminOnly: false },
+    { label: '일정 현황', href: '/scheduler', Icon: CalendarDays, adminOnly: false },
+    { label: '예약 관리', href: '/reservation', Icon: ClipboardCheck, adminOnly: false },
+    { label: '문서 관리', href: '/document', Icon: FileText, adminOnly: true, dividerAfter: true },
+    { label: '식수 관리', href: '/restaurant', Icon: UtensilsCrossed, adminOnly: false },
+    { label: '숙박 현황', href: '/accommodation', Icon: BedDouble, adminOnly: false },
+    { label: '설문 관리', href: '/survey', Icon: BarChart3, adminOnly: false, dividerAfter: true },
+    { label: '설정', href: '/settings', Icon: Settings, adminOnly: true },
 ];
 
 export default function Sidebar() {
@@ -88,40 +88,25 @@ export default function Sidebar() {
                 </div>
             </div>
 
-            <nav className={styles.nav}>
-                {visibleItems.map((item, idx) =>
-                    item.disabled ? (
-                        <Fragment key={item.href}>
-                            <span
-                                className={`${styles.navItem} ${styles.navItemDisabled}`}
-                                title={!expanded ? `${item.label} (준비중)` : undefined}
-                            >
-                                <item.Icon className={styles.navIcon} />
-                                <span className={styles.navLabel}>
-                                    {item.label}
-                                    <span className={styles.soonBadge}>준비중</span>
-                                </span>
-                            </span>
-                            {item.dividerAfter && idx < visibleItems.length - 1 && (
-                                <div className={styles.navDivider} />
-                            )}
-                        </Fragment>
-                    ) : (
+            <nav className={styles.nav} aria-label="주 메뉴">
+                {visibleItems.map((item, idx) => {
+                    const active = pathname.startsWith(item.href);
+                    return (
                         <Fragment key={item.href}>
                             <Link
                                 href={item.href}
-                                className={`${styles.navItem} ${pathname.startsWith(item.href) ? styles.active : ''}`}
+                                className={`${styles.navItem} ${active ? styles.active : ''}`}
+                                aria-current={active ? 'page' : undefined}
+                                aria-label={item.label}
                                 title={!expanded ? item.label : undefined}
                             >
-                                <item.Icon className={styles.navIcon} />
+                                <item.Icon className={styles.navIcon} size={20} aria-hidden="true" />
                                 <span className={styles.navLabel}>{item.label}</span>
                             </Link>
-                            {item.dividerAfter && idx < visibleItems.length - 1 && (
-                                <div className={styles.navDivider} />
-                            )}
+                            {item.dividerAfter && idx < visibleItems.length - 1 && <div className={styles.navDivider} />}
                         </Fragment>
-                    ),
-                )}
+                    );
+                })}
             </nav>
 
             <ProfileDropdown collapsed={!expanded} />

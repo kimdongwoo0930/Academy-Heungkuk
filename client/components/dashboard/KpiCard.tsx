@@ -1,39 +1,32 @@
-import { ReactNode } from "react";
-import styles from "./KpiCard.module.css";
+import { LucideIcon } from 'lucide-react';
+import { ReactNode } from 'react';
+import styles from './KpiCard.module.css';
 
-type Variant = "pink" | "green" | "blue" | "yellow";
+type Tone = 'accent' | 'green' | 'warn';
 
 interface Props {
   label: string;
   value: string | number;
-  subText: ReactNode;
-  icon: string;
-  variant: Variant;
-  animDelay?: string;
-  onClick?: () => void;
+  unit?: ReactNode;
+  sub: ReactNode;
+  Icon: LucideIcon;
+  tone: Tone;
 }
 
-export default function KpiCard({
-  label,
-  value,
-  subText,
-  icon,
-  variant,
-  animDelay,
-  onClick,
-}: Props) {
+export default function KpiCard({ label, value, unit, sub, Icon, tone }: Props) {
   return (
-    <div
-      className={`${styles.card} ${styles[variant]} ${onClick ? styles.clickable : ''}`}
-      style={animDelay ? { animationDelay: animDelay } : undefined}
-      onClick={onClick}
-    >
+    <div className={styles.card}>
       <div className={styles.top}>
         <span className={styles.label}>{label}</span>
-        <div className={styles.icon}>{icon}</div>
+        <div className={`${styles.iconBox} ${styles[tone]}`} aria-hidden="true">
+          <Icon size={18} strokeWidth={2} />
+        </div>
       </div>
-      <div className={styles.value}>{value}</div>
-      <div className={styles.sub}>{subText}</div>
+      <div className={styles.value}>
+        {value}
+        {unit && <span className={styles.unit}>{unit}</span>}
+      </div>
+      <div className={styles.sub}>{sub}</div>
     </div>
   );
 }

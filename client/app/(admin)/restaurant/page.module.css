@@ -1,595 +1,82 @@
+/*
+ * 식수 관리 v2 — 다른 v2 페이지와 같은 --d- 토큰 (전역 토큰과 값이 달라 접두사 사용).
+ */
 .page {
-  padding-bottom: 24px;
-}
+  --d-bg: #f4f3f8;
+  --d-surface: #ffffff;
+  --d-surface2: #faf9fd;
+  --d-line: #e6e3ee;
+  --d-line2: #eeebf4;
+  --d-grid: #d3cfe0;
+  --d-text: #1c1829;
+  --d-muted: #615d75;
+  --d-accent: #d0245f;
+  --d-on-accent: #ffffff;
+  --d-accent-soft: #fde9f0;
+  --d-warn-fg: #8a5a00;
+  --d-accent-line: rgba(208, 36, 95, 0.3);
+  --d-sat: #2d5fd0;
+  --d-sun: #cc2a4d;
+  --d-weekend: rgba(60, 40, 120, 0.06);
+  --d-today: rgba(208, 36, 95, 0.09);
+  --d-shadow: 0 1px 2px rgba(30, 23, 48, 0.05);
 
-.header {
+  /* 본문 영역(padding 24px)을 덮어 배경을 칠하고 padding 32px 40px 을 맞춘다 */
+  margin: -24px;
+  padding: 32px 40px 48px;
+  min-height: calc(100vh - var(--header-height));
+  background: var(--d-bg);
+  color: var(--d-text);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 16px;
-  position: sticky;
-  top: var(--header-height);
-  z-index: 100;
-  background:
-    linear-gradient(180deg, var(--bg) 78%, rgba(244, 246, 248, 0));
-  padding: 10px 0 14px;
-  margin-top: -10px;
-  backdrop-filter: blur(8px);
+  flex-direction: column;
+  gap: 16px;
 }
 
-.headerControls {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-shrink: 0;
+:global([data-theme='dark']) .page {
+  --d-bg: #100c19;
+  --d-surface: #19142a;
+  --d-surface2: #1e1833;
+  --d-line: #2c2542;
+  --d-line2: #241e38;
+  --d-grid: #3d3459;
+  --d-text: #ede9f7;
+  --d-muted: #a59fbd;
+  --d-accent: #ff6aa2;
+  --d-on-accent: #1a1226;
+  --d-accent-soft: rgba(255, 106, 162, 0.14);
+  --d-warn-fg: #f4c460;
+  --d-accent-line: rgba(255, 106, 162, 0.38);
+  --d-sat: #86a9ff;
+  --d-sun: #ff8396;
+  --d-weekend: rgba(255, 255, 255, 0.05);
+  --d-today: rgba(255, 106, 162, 0.12);
+  --d-shadow: none;
 }
 
-.pageIntro {
-  min-width: 0;
-}
+.pageHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.pageTitle { font-size: 26px; font-weight: 700; color: var(--d-text); }
+.pageDesc { margin-top: 4px; font-size: 14px; color: var(--d-muted); }
 
-.eyebrow {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
+.headRight { display: flex; align-items: center; gap: 10px; }
+.headRight :global(span) { color: var(--d-muted); }
 
-.title {
-  color: var(--text);
-  font-size: 24px;
-  font-weight: 850;
-  line-height: 1.2;
-}
-
-.pageIntro p {
-  margin-top: 4px;
-  color: var(--text-sub);
-  font-size: 13px;
-}
-
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.navBtn {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  font-size: 16px;
+.iconBtn {
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
-}
-.navBtn:hover {
-  background: var(--surface-hover);
-}
-
-.printBtn {
-  height: 36px;
-  padding: 0 16px;
-  background: var(--surface);
-  color: var(--text-sub);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 750;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    transform 0.15s;
-  margin-right: auto;
-}
-.printBtn:hover {
-  background: var(--surface-hover);
-  border-color: #b8c4d6;
-  color: var(--text);
-  transform: translateY(-1px);
-}
-
-.monthLabel {
-  font-size: 16px;
-  font-weight: 700;
-  min-width: 100px;
-  text-align: center;
-}
-
-.halfBlock {
-  margin-bottom: 22px;
-  animation: tableIn 0.22s ease-out both;
-}
-
-.summaryGrid {
-  display: grid;
-  grid-template-columns: minmax(200px, 1.4fr) repeat(2, minmax(120px, 0.55fr));
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.summaryHero,
-.summaryCard {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
-}
-
-.summaryHero {
-  padding: 12px 16px;
-  background:
-    radial-gradient(circle at 92% 12%, rgba(236, 0, 140, 0.16), transparent 11rem),
-    linear-gradient(135deg, #fff7fb, var(--surface) 62%);
-}
-
-.summaryCard {
-  padding: 12px 16px;
-  background:
-    linear-gradient(135deg, rgba(53, 27, 111, 0.07), transparent 58%),
-    var(--surface);
-}
-
-.summaryLabel {
-  display: block;
-  color: var(--text-sub);
-  font-size: 12px;
-  font-weight: 750;
-}
-
-.summaryHero strong,
-.summaryCard strong {
-  display: block;
-  margin-top: 4px;
-  color: var(--text);
-  font-size: 20px;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-}
-
-.summaryHint {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-sub);
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.loading {
-  padding: 80px 0;
-  text-align: center;
-  color: var(--text-sub);
-  font-size: 14px;
-}
-
-.monthSummary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 24px;
-  padding: 18px 22px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.06), transparent 50%),
-    var(--surface);
-  margin-top: 10px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
-}
-
-.monthSummaryTitle {
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.monthSummaryRange {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-sub);
-}
-
-.monthSummaryItems {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  font-size: 13px;
-  color: var(--text-sub);
-}
-
-.monthSummaryItems span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.monthSummaryItems strong {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.monthSummaryTotal {
-  padding-left: 12px;
-  border-left: 1px solid var(--border);
-}
-
-.weekLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-sub);
-  margin-bottom: 6px;
-}
-
-.tableWrap {
-  overflow-x: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
-}
-
-/* ── 공통 테이블 ── */
-.table {
-  overflow: hidden;
-  border-collapse: collapse;
-  font-size: 12px;
-  white-space: nowrap;
-  table-layout: fixed;
-}
-
-.table th {
-  background: #e7edf7;
-  padding: 7px 2px;
-  text-align: center;
-  font-weight: 800;
-  border: 1px solid #bfcbdd;
-  color: #1f2f46;
-}
-
-.weekendTh {
-  background: #fff0f0 !important;
-  color: #d13a2f !important;
-}
-
-.otherMonthTh {
-  background: #f0f0f0 !important;
-  color: #bbb !important;
-}
-
-.mealSubTh {
-  font-size: 9px !important;
-  font-weight: 750 !important;
-  padding: 3px 1px !important;
-  color: #64748b;
-}
-
-.dateNum {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.dayLabel {
-  font-size: 11px;
-  font-weight: 400;
-  margin-top: 1px;
-  color: inherit;
-}
-
-.thOrg {
-  min-width: 72px !important;
-  text-align: left !important;
-  padding-left: 6px !important;
-}
-
-.thTotal {
-  min-width: 36px !important;
-  font-size: 11px !important;
-  background: linear-gradient(135deg, #334f74, #243c5a) !important;
-  color: #fff !important;
-}
-
-/* ── 셀 ── */
-.table td {
-  border: 1px solid #d8dee8;
-  padding: 1px 2px;
-  height: 28px;
-  vertical-align: middle;
-  text-align: center;
-}
-
-.table tbody tr:hover td:not(.weekTotalCell) {
-  background-color: #f8fbff;
-}
-
-.weekendCol {
-  background: #fff7f7 !important;
-}
-
-.otherMonthCol {
-  background: #f6f7f9 !important;
-}
-
-.tdOrg {
-  font-size: 11.5px;
-  font-weight: 800;
-  text-align: left;
-  padding-left: 10px !important;
-  background: #fbfcff;
-  vertical-align: middle;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-
-.tdOrg:hover {
-  background: #eef5ff;
-}
-
-.mealCell {
-  position: relative;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.mealCellHasValue {
-  background: #eef5ff;
-}
-
-.weekendCellHasValue {
-  background: #ffe0e0 !important;
-}
-
-.specialMeal {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 3px;
-  background: #94a3b8;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 7px;
-  line-height: 1;
-}
-
-.specialMealConfirmed {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 3px;
-  background: linear-gradient(135deg, #fb923c, #ea580c);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 7px;
-  line-height: 1;
-}
-
-.confirmed {
-  color: #e11d48;
-  font-weight: 850;
-}
-.pending {
-  color: #94a3b8;
-  font-weight: 650;
-}
-
-/* 합계 행 */
-.totalRow td {
-  background: #d4e4f7 !important;
-  font-weight: 850;
-  font-size: 12px;
-  color: #17345f;
-  text-align: center;
-  border-top: 2px solid #86a8d2 !important;
-}
-
-.totalLabel {
-  text-align: center !important;
-  font-weight: 700 !important;
-}
-
-.weekTotalCell {
-  font-size: 12px;
-  font-weight: 800;
-  color: #fff !important;
-  text-align: center;
-  background: linear-gradient(135deg, #55749b, #3c5878) !important;
-}
-
-.emptyCell {
-  text-align: center;
-  color: var(--text-sub);
-  font-size: 13px;
-  padding: 34px !important;
-  background: linear-gradient(135deg, #fbfcff, #f5f8fc);
-}
-
-@keyframes tableIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 960px) {
-  .header {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .summaryGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   다크 모드
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-/* 날짜 헤더 */
-[data-theme='dark'] .header {
-  background:
-    linear-gradient(180deg, var(--bg) 78%, rgba(24, 24, 27, 0));
-}
-
-[data-theme='dark'] .summaryHero,
-[data-theme='dark'] .summaryCard,
-[data-theme='dark'] .monthSummary {
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
-}
-
-[data-theme='dark'] .summaryHero {
-  background:
-    radial-gradient(circle at 92% 12%, rgba(217, 100, 153, 0.14), transparent 11rem),
-    var(--surface);
-}
-
-[data-theme='dark'] .summaryCard {
-  background:
-    linear-gradient(135deg, rgba(124, 109, 181, 0.12), transparent 58%),
-    var(--surface);
-}
-
-[data-theme='dark'] .monthSummary,
-[data-theme='dark'] .emptyCell {
-  background: var(--surface);
-}
-
-[data-theme='dark'] .table th {
-  background: #2c2c2f;
-  border-color: #4a4a4e;
-  color: #d4d4d8;
-}
-
-/* 주말 헤더 */
-[data-theme='dark'] .weekendTh {
-  background: #2c1e22 !important;
-  color: #f87171 !important;
-}
-
-/* 다음/이전달 헤더 */
-[data-theme='dark'] .otherMonthTh {
-  background: #1a1a1c !important;
-  color: #52525b !important;
-}
-
-/* 조/중/석 서브 헤더 */
-[data-theme='dark'] .mealSubTh {
-  color: #71717a;
-}
-
-/* 식수계 헤더 */
-[data-theme='dark'] .thTotal {
-  background: #1a1a1d !important;
-  color: #a1a1aa !important;
-}
-
-/* 기본 셀 테두리 */
-[data-theme='dark'] .table td {
-  border-color: #3c3c3f;
-  color: #d4d4d8;
-}
-
-[data-theme='dark'] .table tbody tr:hover td:not(.weekTotalCell) {
-  background-color: #29292d;
-}
-
-/* 주말 열 배경 */
-[data-theme='dark'] .weekendCol {
-  background: #1f1819 !important;
-}
-
-/* 다음/이전달 열 배경 */
-[data-theme='dark'] .otherMonthCol {
-  background: #151516 !important;
-}
-
-/* 기관명 셀 */
-[data-theme='dark'] .tdOrg {
-  background: #252528;
-  color: #d4d4d8;
-}
-
-/* 값이 있는 식수 셀 (살짝 밝은 하이라이트) */
-[data-theme='dark'] .mealCellHasValue {
-  background: #303034;
-}
-
-/* 값이 있는 주말 셀 (분홍 하이라이트) */
-[data-theme='dark'] .weekendCellHasValue {
-  background: #3a1e22 !important;
-}
-
-/* 특이사항 배지 (회색) */
-[data-theme='dark'] .specialMeal {
-  background: #52525b;
-  color: #d4d4d8;
-}
-
-/* 특이사항 배지 (확정 주황) */
-[data-theme='dark'] .specialMealConfirmed {
-  background: #b35c10;
-  color: #ffe0b2;
-}
-
-/* 확정 식수 숫자 (빨간) */
-[data-theme='dark'] .confirmed {
-  color: #f87171;
-}
-
-/* 미확정 식수 숫자 (회색) */
-[data-theme='dark'] .pending {
-  color: #52525b;
-}
-
-/* 합계 행 */
-[data-theme='dark'] .totalRow td {
-  background: #2c2c2f !important;
-  color: #d4d4d8 !important;
-  border-top-color: #52525b !important;
-}
-
-/* 주간 식수계 셀 */
-[data-theme='dark'] .weekTotalCell {
-  background: #1a1a1d !important;
-  color: #f4f4f5 !important;
-}
-
-/* 합계 행 + 주말/다른달 열 충돌 — totalRow가 우선 */
-[data-theme='dark'] .totalRow td.weekendCol {
-  background: #282428 !important;
-  color: #d4d4d8 !important;
-}
-[data-theme='dark'] .totalRow td.otherMonthCol {
-  background: #1e1e20 !important;
-  color: #71717a !important;
+  border-radius: 9px;
+  border: 1px solid var(--d-line);
+  background: var(--d-surface);
+  color: var(--d-muted);
+}
+.iconBtn:hover { background: var(--d-surface2); color: var(--d-text); }
+.iconBtn:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 2px; }
+
+.loading { text-align: center; padding: 80px 0; color: var(--d-muted); font-size: 14px; }
+
+@media print {
+  .page { margin: 0; padding: 0; background: #fff; }
+  .headRight { display: none; }
 }

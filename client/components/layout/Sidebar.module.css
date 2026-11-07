@@ -1,19 +1,21 @@
 .sidebar {
-  --sidebar-bg-start: var(--primary);
-  --sidebar-bg-end: var(--primary-hover);
-  --sidebar-text: rgba(255, 255, 255, 0.9);
-  --sidebar-text-muted: rgba(255, 255, 255, 0.65);
-  --sidebar-text-soft: rgba(255, 255, 255, 0.55);
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-hover: rgba(255, 255, 255, 0.08);
-  --sidebar-hover-soft: rgba(255, 255, 255, 0.05);
-  --sidebar-active-bg: rgba(241, 90, 169, 0.14);
+  /* 대시보드 v2 사이드바 토큰 (ProfileDropdown 도 이 변수를 쓴다) */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #1c1829;
+  --sidebar-text-muted: #5f5b73;
+  --sidebar-text-soft: #615d75;
+  --sidebar-border: #e6e3ee;
+  --sidebar-hover: #eeebf4;
+  --sidebar-hover-soft: #faf9fd;
+  --sidebar-accent: #d0245f;
+  --sidebar-accent-soft: #fde9f0;
   position: fixed;
   top: 0;
   left: 0;
   width: var(--sidebar-width);
   height: 100vh;
-  background: linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   z-index: 200;
@@ -22,15 +24,15 @@
 }
 
 [data-theme='dark'] .sidebar {
-  --sidebar-bg-start: #1e1b2e;
-  --sidebar-bg-end: #17152a;
-  --sidebar-text: rgba(255, 255, 255, 0.92);
-  --sidebar-text-muted: rgba(255, 255, 255, 0.7);
-  --sidebar-text-soft: rgba(255, 255, 255, 0.58);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-hover: rgba(255, 255, 255, 0.1);
-  --sidebar-hover-soft: rgba(255, 255, 255, 0.06);
-  --sidebar-active-bg: rgba(241, 90, 169, 0.16);
+  --sidebar-bg: #130f1e;
+  --sidebar-text: #ede9f7;
+  --sidebar-text-muted: #aaa4c0;
+  --sidebar-text-soft: #a59fbd;
+  --sidebar-border: #2c2542;
+  --sidebar-hover: #241e38;
+  --sidebar-hover-soft: #1e1833;
+  --sidebar-accent: #ff6aa2;
+  --sidebar-accent-soft: rgba(255, 106, 162, 0.14);
 }
 
 .sidebar.collapsed {
@@ -39,36 +41,32 @@
 
 /* hover 시 콘텐츠 위로 떠서 펼쳐지는 상태 */
 .sidebar.floating {
-  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.3);
+  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme='dark'] .sidebar.floating {
+  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.5);
 }
 
 .logo {
-  padding: 20px 16px 16px;
+  padding: 20px 10px 16px 10px;
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
 }
 
-/* 좁을 때 로고 마크를 레일 정중앙(= nav 아이콘과 같은 축)에 맞춤 */
-.sidebar.collapsed .logo {
-  padding-left: 8px;
-  padding-right: 0;
-}
-
 .logoIconWrap {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.logoIconWrap svg {
-  display: block;
-}
+.logoIconWrap svg { display: block; }
 
 .logoTextWrap {
   display: flex;
@@ -88,21 +86,21 @@
 }
 
 .logoName {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: #f0edf8;
+  color: var(--sidebar-text);
   line-height: 1.4;
 }
 
 .logoSub {
-  font-size: 11px;
-  color: #8b7faa;
-  margin-top: 2px;
+  font-size: 12px;
+  color: var(--sidebar-text-soft);
+  margin-top: 1px;
 }
 
 .nav {
   flex: 1;
-  padding: 12px 8px;
+  padding: 14px 8px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -111,29 +109,49 @@
 
 .navDivider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.12);
-  margin: 6px 4px;
+  background: var(--sidebar-border);
+  margin: 8px 4px;
 }
 
 .navItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 8px;
-  color: #8b7faa;
-  font-size: 12.5px;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--sidebar-text-muted);
+  font-size: 14px;
   font-weight: 500;
   transition: background 0.15s, color 0.15s;
-  cursor: pointer;
   white-space: nowrap;
 }
 
-/* 좁을 때: 아이콘을 셀 정중앙에 두고 active 하이라이트도 아이콘과 동심으로 */
+/* 접혔을 때: 아이콘을 셀 정중앙에 두고 active 하이라이트도 아이콘과 동심으로 */
 .sidebar.collapsed .navItem {
   padding-left: 0;
   padding-right: 0;
+  gap: 0;
   justify-content: center;
+}
+
+.navItem:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text);
+}
+
+.navItem:focus-visible {
+  outline: 2px solid var(--sidebar-accent);
+  outline-offset: -2px;
+}
+
+.navItem.active {
+  background: var(--sidebar-accent-soft);
+  color: var(--sidebar-accent);
+  font-weight: 600;
+}
+
+.navIcon {
+  flex-shrink: 0;
 }
 
 .navLabel {
@@ -152,62 +170,4 @@
   opacity: 0;
   transition: opacity 0.06s ease;
   pointer-events: none;
-}
-
-.navItem:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #f0edf8;
-}
-
-.navItemDisabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.soonBadge {
-  margin-left: auto;
-  font-size: 10px;
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--sidebar-text-muted);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.navItem.active {
-  background: rgba(232, 48, 106, 0.18);
-  color: #f0427a;
-  font-weight: 600;
-}
-
-.navIcon {
-  font-size: 22px;
-  width: 22px;
-  min-width: 22px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.bottom {
-  padding: 16px;
-  border-top: 1px solid var(--sidebar-border);
-}
-
-.logoutBtn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  color: var(--sidebar-text-soft);
-  font-size: 13px;
-  border-radius: 6px;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-
-.logoutBtn:hover {
-  background: var(--sidebar-hover-soft);
-  color: var(--sidebar-text);
 }

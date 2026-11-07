@@ -2,6 +2,7 @@ package com.heungkuk.academy.domain.survey.controller;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -52,7 +53,7 @@ public class SurveyController {
     @Operation(summary = "설문 응답 제출")
     @PostMapping("/v1/survey/{token}")
     public ResponseEntity<CommonResponse<Void>> submitSurvey(@PathVariable String token,
-            @RequestBody SurveyRequest surveyRequest) {
+            @RequestBody @Valid SurveyRequest surveyRequest) {
         surveyService.saveSurvey(token, surveyRequest);
         return ResponseEntity.ok(CommonResponse.success(null));
     }

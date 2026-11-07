@@ -108,7 +108,9 @@ export default function SurveyPage({ params }: Props) {
     useEffect(() => {
         checkSurveyToken(token)
             .then((isUsed) => setTokenStatus(isUsed ? 'used' : 'valid'))
-            .catch(() => setTokenStatus('invalid'));
+            .catch(() => setTokenStatus('invalid'))
+            // 주소창·공유·히스토리에 토큰이 남지 않도록 확인이 끝나면 주소를 /survey-link 로 바꾼다
+            .finally(() => window.history.replaceState(null, '', '/survey-link'));
     }, [token]);
 
     const set = <K extends keyof SurveyAnswers>(key: K, value: SurveyAnswers[K]) => {
