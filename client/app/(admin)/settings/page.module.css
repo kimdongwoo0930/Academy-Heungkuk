@@ -795,8 +795,9 @@
 }
 
 .roomCellDisabled {
-  background: #f1f1f1;
-  border-color: #ccc;
+  background: var(--surface-2);
+  border-color: var(--border);
+  border-style: dashed;
 }
 
 .roomCellNum {
@@ -815,7 +816,7 @@
 }
 
 .roomCellDisabled .roomCellStatus {
-  color: #aaa;
+  color: var(--text-sub);
 }
 
 .roomLegend {

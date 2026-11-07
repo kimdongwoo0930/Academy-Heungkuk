@@ -648,7 +648,7 @@ export default function SettingsPage() {
                 </div>
               ))}
               <div className={styles.roomLegendItem}>
-                <span className={styles.roomLegendDot} style={{ background: "#ccc" }} />
+                <span className={styles.roomLegendDot} style={{ background: "var(--surface-2)", border: "1px dashed var(--text-sub)" }} />
                 <span>사용불가</span>
               </div>
             </div>

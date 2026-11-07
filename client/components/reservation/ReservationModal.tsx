@@ -11,6 +11,7 @@ import { isAdmin } from '@/lib/utils/auth';
 import { printRoomTableIntegrated } from '@/lib/utils/printRoomTable';
 import { useToastStore } from '@/store/toast';
 import { isAxiosError } from 'axios';
+import { FileText } from 'lucide-react';
 import { ko } from 'date-fns/locale';
 import Script from 'next/script';
 import DatePicker from 'react-datepicker';
@@ -102,6 +103,49 @@ interface Props {
     onClose: () => void;
     onSave: (data: Reservation) => void | Promise<void>;
     defaultValues?: Partial<Omit<Reservation, 'id' | 'reservationCode'>>;
+    /** 모달을 열 때 먼저 보여줄 탭 (기본: 기본정보) */
+    initialTab?: Tab;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 왼쪽 요약용 "11/2 (월)" — Date 문자열 파싱의 UTC 밀림을 피하려고 연·월·일을 직접 쪼갠다
+function shortDate(dateStr: string): string {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return `${m}/${d} (${WEEKDAY_KO[new Date(y, m - 1, d).getDay()]})`;
+}
+
+const classroomShort = (id: string) => (/^\d+$/.test(id) ? `${id}호` : id);
+
+function blankMeal(d: string): MealReservation {
+    return {
+        reservedDate: d,
+        breakfast: 0,
+        lunch: 0,
+        dinner: 0,
+        specialBreakfast: false,
+        specialLunch: false,
+        specialDinner: false,
+    };
+}
+
+/**
+ * 강의실이 기간(시작~종료) 전체가 아니라 일부 날짜에만 배정돼 있으면(예: 1일, 30일) 그 날짜 목록(정렬·중복 제거)을,
+ * 기간을 빠짐없이 채우고 있거나 배정이 없으면 null 을 돌려준다.
+ * 숙박·식수 초기 날짜를 이 날짜에 맞춰서, 기간 전체가 한꺼번에 생기지 않게 한다.
+ */
+function sparseClassroomDates(
+    classrooms: { reservedDate: string }[] | undefined,
+    start: string | undefined,
+    end: string | undefined,
+): string[] | null {
+    if (!start || !end) return null;
+    const dates = [...new Set((classrooms ?? []).map((c) => String(c.reservedDate)).filter(Boolean))].sort();
+    if (dates.length === 0) return null;
+    const total = Math.round((Date.parse(end) - Date.parse(start)) / DAY_MS) + 1;
+    return dates.length < total ? dates : null;
 }
 
 function emptyForm(): Omit<Reservation, 'id' | 'reservationCode'> {
@@ -136,7 +180,7 @@ function emptyForm(): Omit<Reservation, 'id' | 'reservationCode'> {
     };
 }
 
-export default function ReservationModal({ reservation, allReservations, onClose, onSave, defaultValues }: Props) {
+export default function ReservationModal({ reservation, allReservations, onClose, onSave, defaultValues, initialTab }: Props) {
     const isEdit = reservation !== null;
     const globalToast = useToastStore((s) => s.show);
     const [disabledClassrooms, setDisabledClassrooms] = useState<Set<string>>(new Set());
@@ -227,7 +271,7 @@ export default function ReservationModal({ reservation, allReservations, onClose
         document.addEventListener('touchmove', onMove, { passive: true });
         document.addEventListener('touchend', onUp);
     };
-    const [tab, setTab] = useState<Tab>('기본정보');
+    const [tab, setTab] = useState<Tab>(initialTab ?? '기본정보');
     const [pickerDate, setPickerDate] = useState<string | null>(null);
     // 범위 선택 중간 상태(시작만 고른 시점) — 끝까지 고르기 전엔 form을 건드리지 않는다
     const [pendingStart, setPendingStart] = useState<string | null>(null);
@@ -262,6 +306,10 @@ export default function ReservationModal({ reservation, allReservations, onClose
         dinner: 0,
     });
     const [bulkRoomPickerOpen, setBulkRoomPickerOpen] = useState(false);
+    // 강의실이 기간의 일부 날짜에만 있을 때(예: 일정 현황에서 1일·30일만 선택) 그 날짜 목록
+    const initialSparseDates = isEdit
+        ? sparseClassroomDates(reservation.classrooms, String(reservation.startDate), String(reservation.endDate))
+        : sparseClassroomDates(defaultValues?.classrooms, defaultValues?.startDate, defaultValues?.endDate);
     const [roomDates, setRoomDates] = useState<string[]>(() => {
         const buildRange = (start: string, end: string) => {
             const dates: string[] = [];
@@ -278,9 +326,12 @@ export default function ReservationModal({ reservation, allReservations, onClose
             if (rooms.length > 0) {
                 return [...new Set(rooms.map((r) => r.reservedDate))].sort();
             }
+            if (initialSparseDates) return initialSparseDates;
             if (reservation.startDate && reservation.endDate) {
                 return buildRange(String(reservation.startDate), String(reservation.endDate));
             }
+        } else if (initialSparseDates) {
+            return initialSparseDates;
         } else if (defaultValues?.startDate && defaultValues?.endDate) {
             return buildRange(defaultValues.startDate, defaultValues.endDate);
         }
@@ -343,7 +394,11 @@ export default function ReservationModal({ reservation, allReservations, onClose
                   rooms: reservation.rooms ? [...reservation.rooms] : [],
                   meals: reservation.meals ? [...reservation.meals] : [],
               }
-            : { ...emptyForm(), ...defaultValues },
+            : {
+                  ...emptyForm(),
+                  ...defaultValues,
+                  meals: defaultValues?.meals ?? (initialSparseDates ? initialSparseDates.map(blankMeal) : []),
+              },
     );
 
     const initialFormRef = useRef(JSON.stringify(form));
@@ -499,15 +554,7 @@ export default function ReservationModal({ reservation, allReservations, onClose
     // --- 기간(범위) 변경 ---
     // 핵심: "옛 범위의 i번째 날 → 새 범위의 i번째 날" 로 매핑한다.
     // 길이가 같으면 통째 이동(배정이 그대로 따라감), 길어지면 뒤에 빈 날이 붙고, 짧아지면 뒤쪽이 잘린다.
-    const emptyMeal = (d: string): MealReservation => ({
-        reservedDate: d,
-        breakfast: 0,
-        lunch: 0,
-        dinner: 0,
-        specialBreakfast: false,
-        specialLunch: false,
-        specialDinner: false,
-    });
+    const emptyMeal = blankMeal;
 
     const applyRange = (newStart: string, newEnd: string) => {
         const newAll = buildDateRange(newStart, newEnd);
@@ -726,8 +773,10 @@ export default function ReservationModal({ reservation, allReservations, onClose
         setField('classrooms', updated);
     };
 
+    // "전체 적용"은 지금 목록에 있는 날짜에만 적용한다. 목록이 비어 있을 때만 기간 전체로 채운다.
     const applyBulkClassroom = () => {
-        const dates = getDateRange();
+        const listed = [...new Set((form.classrooms ?? []).map((c) => c.reservedDate).filter(Boolean))].sort();
+        const dates = listed.length > 0 ? listed : getDateRange();
         const filled = [...new Set(bulkClassrooms.filter((c) => c !== ''))];
         setField(
             'classrooms',
@@ -781,7 +830,8 @@ export default function ReservationModal({ reservation, allReservations, onClose
 
     // 전체 날짜 일괄 호실 적용
     const applyBulkRooms = (pickedRooms: string[]) => {
-        const dates = getRoomDateRange();
+        const listed = [...new Set(roomDates.filter(Boolean))].sort();
+        const dates = listed.length > 0 ? listed : getRoomDateRange();
         const newEntries: RoomReservation[] = dates.flatMap((date) =>
             pickedRooms.map((num) => ({
                 roomNumber: num,
@@ -820,10 +870,23 @@ export default function ReservationModal({ reservation, allReservations, onClose
     };
 
     const applyBulkMeal = () => {
-        const dates = getDateRange();
+        const current = form.meals ?? [];
+        if (current.length > 0) {
+            // 기존 행의 날짜·특식 표시는 그대로 두고 식수만 바꾼다
+            setField(
+                'meals',
+                current.map((m) => ({
+                    ...m,
+                    breakfast: bulkMeal.breakfast,
+                    lunch: bulkMeal.lunch,
+                    dinner: bulkMeal.dinner,
+                })),
+            );
+            return;
+        }
         setField(
             'meals',
-            dates.map((d) => ({ reservedDate: d, ...bulkMeal })),
+            getDateRange().map((d) => ({ ...blankMeal(d), ...bulkMeal })),
         );
     };
 
@@ -899,6 +962,30 @@ export default function ReservationModal({ reservation, allReservations, onClose
         }
     };
 
+    // ── 왼쪽 요약 / 탭 배지: 폼 상태에서 바로 계산한다 ──
+    const hasPeriod = !!form.startDate && !!form.endDate && form.startDate <= form.endDate;
+    const assignedClassrooms = (form.classrooms ?? []).filter((c) => c.classroomName);
+    const classroomCodes = [...new Set(assignedClassrooms.map((c) => c.classroomName))];
+    const classroomDays = new Set(assignedClassrooms.map((c) => String(c.reservedDate))).size;
+    const roomsPerDate = new Map<string, number>();
+    for (const rm of form.rooms ?? []) {
+        const d = String(rm.reservedDate);
+        roomsPerDate.set(d, (roomsPerDate.get(d) ?? 0) + 1);
+    }
+    const roomNights = roomsPerDate.size;
+    const maxRooms = Math.max(0, ...roomsPerDate.values());
+    const mealRows = form.meals ?? [];
+    const mealTotal = mealRows.reduce((sum, m) => sum + m.breakfast + m.lunch + m.dinner, 0);
+    const tabBadge = (t: Tab) =>
+        t === '강의실' && classroomDays > 0
+            ? `${classroomDays}일`
+            : t === '숙박' && roomNights > 0
+              ? `${roomNights}일`
+              : t === '식수' && mealRows.length > 0
+                ? `${mealRows.length}건`
+                : null;
+    const showDocs = isEdit && !!reservation.id && isAdmin();
+
     return (
         <>
             <Script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" strategy="lazyOnload" />
@@ -921,7 +1008,7 @@ export default function ReservationModal({ reservation, allReservations, onClose
                                 </select>
                             </div>
                             <p className={styles.reqNote}>
-                                <span className={styles.req}>*</span> 필수 입력 항목
+                                <span className={styles.req}>*</span> 표시는 필수 입력 항목입니다
                             </p>
                         </div>
                         <button className={styles.closeBtn} onClick={handleClose}>
@@ -929,6 +1016,143 @@ export default function ReservationModal({ reservation, allReservations, onClose
                         </button>
                     </div>
 
+                    <div className={styles.content}>
+                        {/* 왼쪽 요약 */}
+                        <aside className={styles.summary} aria-label="예약 요약">
+                            <div className={styles.summaryTop}>
+                                <span className={styles.summaryEyebrow}>예약 요약</span>
+                                <strong className={styles.summaryOrg}>{form.organization || '단체명 미입력'}</strong>
+                                {form.purpose && <span className={styles.summaryPurpose}>{form.purpose}</span>}
+                            </div>
+
+                            <div className={styles.summaryPeriod}>
+                                {hasPeriod ? (
+                                    <>
+                                        <strong>{nightsAndDays(form.startDate, form.endDate)}</strong>
+                                        <span>
+                                            {shortDate(form.startDate)} ~ {shortDate(form.endDate)}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span className={styles.summaryPeriodEmpty}>기간을 선택하세요</span>
+                                )}
+                            </div>
+
+                            <dl className={styles.summaryList}>
+                                <div>
+                                    <dt>인원</dt>
+                                    <dd className={form.people > 0 ? '' : styles.summaryWarn}>
+                                        {form.people > 0 ? `${form.people}명` : '미입력 (0명)'}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt>강의실</dt>
+                                    <dd>
+                                        {classroomCodes.length > 0
+                                            ? `${classroomShort(classroomCodes[0])}${
+                                                  classroomCodes.length > 1 ? ` 외 ${classroomCodes.length - 1}` : ''
+                                              } · ${classroomDays}일`
+                                            : '미배정'}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt>숙박</dt>
+                                    <dd>{roomNights > 0 ? `${maxRooms}실 · ${roomNights}박` : '없음'}</dd>
+                                </div>
+                                <div>
+                                    <dt>식수</dt>
+                                    <dd>{mealTotal > 0 ? `${mealTotal}식` : '없음'}</dd>
+                                </div>
+                                {isEdit && (
+                                    <>
+                                        <div>
+                                            <dt>예약번호</dt>
+                                            <dd>{reservation.reservationCode}</dd>
+                                        </div>
+                                        {reservation.createdAt && (
+                                            <div>
+                                                <dt>등록일</dt>
+                                                <dd>{reservation.createdAt.slice(0, 10)}</dd>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </dl>
+
+                            {showDocs && (
+                                <div className={styles.docs}>
+                                    <span className={styles.summaryEyebrow}>문서 출력</span>
+                                                            <>
+                                    <button
+                                        className={styles.tradeBtn}
+                                        disabled={trading}
+                                        onClick={async () => {
+                                            setTrading(true);
+                                            try {
+                                                await downloadTrade(reservation.id, reservation.organization);
+                                            } catch (err) {
+                                                showToast(
+                                                    isAxiosError(err) && err.response?.status === 403
+                                                        ? '권한이 없습니다.'
+                                                        : '거래명세서 생성에 실패했습니다.',
+                                                );
+                                            } finally {
+                                                setTrading(false);
+                                            }
+                                        }}
+                                    >
+                                        <FileText size={14} aria-hidden="true" />
+                                        {trading ? '생성 중...' : '거래명세서'}
+                                    </button>
+                                    <button
+                                        className={styles.confirmationBtn}
+                                        disabled={confirming}
+                                        onClick={async () => {
+                                            setConfirming(true);
+                                            try {
+                                                await downloadConfirmation(reservation.id, reservation.organization);
+                                            } catch (err) {
+                                                showToast(
+                                                    isAxiosError(err) && err.response?.status === 403
+                                                        ? '권한이 없습니다.'
+                                                        : '확인서 생성에 실패했습니다.',
+                                                );
+                                            } finally {
+                                                setConfirming(false);
+                                            }
+                                        }}
+                                    >
+                                        <FileText size={14} aria-hidden="true" />
+                                        {confirming ? '생성 중...' : '확인서'}
+                                    </button>
+                                    <button
+                                        className={styles.estimateBtn}
+                                        disabled={estimating}
+                                        onClick={async () => {
+                                            setEstimating(true);
+                                            try {
+                                                await downloadEstimate(reservation.id, reservation.organization);
+                                            } catch (err) {
+                                                showToast(
+                                                    isAxiosError(err) && err.response?.status === 403
+                                                        ? '권한이 없습니다.'
+                                                        : '견적서 생성에 실패했습니다.',
+                                                );
+                                            } finally {
+                                                setEstimating(false);
+                                            }
+                                        }}
+                                    >
+                                        <FileText size={14} aria-hidden="true" />
+                                        {estimating ? '생성 중...' : '견적서'}
+                                    </button>
+                                </>
+                            
+                                </div>
+                            )}
+                        </aside>
+
+                        <div className={styles.main}>
                     {/* 탭 */}
                     <div className={styles.tabs}>
                         {TABS.map((t) => (
@@ -938,6 +1162,7 @@ export default function ReservationModal({ reservation, allReservations, onClose
                                 onClick={() => setTab(t)}
                             >
                                 {t}
+                                {tabBadge(t) && <span className={styles.tabBadge}>{tabBadge(t)}</span>}
                             </button>
                         ))}
                         {isEdit && reservation.createdAt && (
@@ -984,7 +1209,7 @@ export default function ReservationModal({ reservation, allReservations, onClose
                                             인원 <span className={styles.req}>*</span>
                                         </span>
                                         <input
-                                            className={styles.input}
+                                            className={`${styles.input} ${form.people === 0 ? styles.inputWarn : ''}`}
                                             type="number"
                                             min={0}
                                             placeholder="0"
@@ -1836,71 +2061,8 @@ export default function ReservationModal({ reservation, allReservations, onClose
                     </div>
 
                     <div className={styles.footer}>
-                        <div className={styles.footerLeft}>
-                            {isEdit && reservation.id && isAdmin() && (
-                                <>
-                                    <button
-                                        className={styles.tradeBtn}
-                                        disabled={trading}
-                                        onClick={async () => {
-                                            setTrading(true);
-                                            try {
-                                                await downloadTrade(reservation.id, reservation.organization);
-                                            } catch (err) {
-                                                showToast(
-                                                    isAxiosError(err) && err.response?.status === 403
-                                                        ? '권한이 없습니다.'
-                                                        : '거래명세서 생성에 실패했습니다.',
-                                                );
-                                            } finally {
-                                                setTrading(false);
-                                            }
-                                        }}
-                                    >
-                                        {trading ? '생성 중...' : '거래명세서'}
-                                    </button>
-                                    <button
-                                        className={styles.confirmationBtn}
-                                        disabled={confirming}
-                                        onClick={async () => {
-                                            setConfirming(true);
-                                            try {
-                                                await downloadConfirmation(reservation.id, reservation.organization);
-                                            } catch (err) {
-                                                showToast(
-                                                    isAxiosError(err) && err.response?.status === 403
-                                                        ? '권한이 없습니다.'
-                                                        : '확인서 생성에 실패했습니다.',
-                                                );
-                                            } finally {
-                                                setConfirming(false);
-                                            }
-                                        }}
-                                    >
-                                        {confirming ? '생성 중...' : '확인서'}
-                                    </button>
-                                    <button
-                                        className={styles.estimateBtn}
-                                        disabled={estimating}
-                                        onClick={async () => {
-                                            setEstimating(true);
-                                            try {
-                                                await downloadEstimate(reservation.id, reservation.organization);
-                                            } catch (err) {
-                                                showToast(
-                                                    isAxiosError(err) && err.response?.status === 403
-                                                        ? '권한이 없습니다.'
-                                                        : '견적서 생성에 실패했습니다.',
-                                                );
-                                            } finally {
-                                                setEstimating(false);
-                                            }
-                                        }}
-                                    >
-                                        {estimating ? '생성 중...' : '견적서'}
-                                    </button>
-                                </>
-                            )}
+                        <div>
+                            <span className={styles.footerHint}>변경 사항은 저장해야 반영됩니다</span>
                         </div>
                         <div className={styles.footerRight}>
                             <button className={styles.cancelBtn} onClick={handleClose}>
@@ -1909,10 +2071,12 @@ export default function ReservationModal({ reservation, allReservations, onClose
                             <button
                                 className={styles.saveBtn}
                                 onClick={handleSave}
-                                disabled={saving || (!isDirty && isEdit)}
+                                disabled={saving || !isDirty}
                             >
                                 {saving ? '저장 중...' : '저장'}
                             </button>
+                        </div>
+                    </div>
                         </div>
                     </div>
                 </div>

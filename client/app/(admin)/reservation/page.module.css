@@ -1,432 +1,336 @@
+/*
+ * 예약 관리 v2 — 대시보드·일정 현황과 같은 --d- 토큰.
+ * 전역 --bg / --surface / --accent 와 값이 달라 접두사를 붙여 이 페이지 안에서만 쓴다.
+ */
 .reservationPage {
-  background: var(--bg);
-  color: var(--text);
-}
+  --d-bg: #f4f3f8;
+  --d-surface: #ffffff;
+  --d-surface2: #faf9fd;
+  --d-line: #e6e3ee;
+  --d-line2: #eeebf4;
+  --d-text: #1c1829;
+  --d-muted: #615d75;
+  --d-accent: #d0245f;
+  --d-on-accent: #ffffff;
+  --d-accent-soft: #fde9f0;
+  --d-accent-line: rgba(208, 36, 95, 0.3);
+  --d-green-fg: #14663f;
+  --d-green-soft: #dcf5e9;
+  --d-blue-fg: #2d4fa8;
+  --d-blue-soft: #e3ebfc;
+  --d-warn-fg: #8a5a00;
+  --d-warn-soft: #fdf0d2;
+  --d-red-fg: #a3203f;
+  --d-red-soft: #fde4ea;
+  --d-shadow: 0 1px 2px rgba(30, 23, 48, 0.05);
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-  position: sticky;
-  top: var(--header-height);
-  z-index: 100;
-  background: var(--bg);
-  padding: 2px 0;
-  margin-top: -2px;
-}
-
-.title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.headerBtns {
-  display: flex;
-  gap: 8px;
-}
-
-.templateBtn {
-  height: 38px;
-  padding: 0 16px;
-  background: var(--surface);
-  color: var(--text-sub);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.templateBtn:hover {
-  background: var(--surface-hover);
-}
-
-.excelBtn {
-  height: 32px;
-  padding: 0 12px;
-  background: var(--success-bg);
-  color: var(--success);
-  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: filter 0.15s;
-}
-
-.excelBtn:hover {
-  filter: brightness(0.94);
-}
-
-.addBtn {
-  height: 32px;
-  padding: 0 14px;
-  background: var(--accent);
-  color: var(--text-inverse);
-  border: none;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s;
-  white-space: nowrap;
-}
-
-.addBtn:hover {
-  background: var(--accent-hover);
-}
-
-.filterCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 14px;
-  overflow: hidden;
-  box-shadow: var(--shadow-elevated);
-}
-
-.filterRow {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
-}
-
-.filterRowRight {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.filterLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-sub);
-  white-space: nowrap;
-  width: 52px;
-  flex-shrink: 0;
-}
-
-.filterDivider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 0;
-}
-
-.statusCheckboxes {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.statusCheckLabel {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text);
-  cursor: pointer;
-  user-select: none;
-}
-
-.statusCheckLabel input[type='checkbox'] {
-  width: 15px;
-  height: 15px;
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.sortBtns {
-  display: flex;
-  gap: 4px;
-}
-
-.sortBtn {
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  font-size: 13px;
-  background: var(--surface);
-  color: var(--text-sub);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.sortBtn:hover {
-  background: var(--surface-hover);
-}
-
-.sortBtnActive {
-  background: var(--accent);
-  color: var(--text-inverse);
-  border-color: var(--accent);
-}
-
-.sortBtnActive:hover {
-  background: var(--accent-hover);
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 16px;
-  font-size: 13px;
-}
-
-.pagination button {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text);
-}
-
-.pagination button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.pagination button:not(:disabled):hover {
-  background: var(--surface-hover);
-}
-
-.searchInput {
-  flex: 1;
-  height: 36px;
-  padding: 0 12px;
-  border: 1.5px solid var(--border);
-  border-radius: 7px;
-  font-size: 13px;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.15s;
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-.searchInput:focus {
-  border-color: var(--accent);
-}
-
-.searchBtn {
-  height: 36px;
-  padding: 0 20px;
-  background: var(--accent);
-  color: var(--text-inverse);
-  border: none;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  flex-shrink: 0;
-  transition: background 0.15s;
-}
-
-.searchBtn:hover {
-  background: var(--accent-hover);
-}
-
-.countLabel {
-  font-size: 13px;
-  color: var(--text-sub);
-  display: flex;
-  align-items: center;
-}
-
-.tableWrap {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: var(--shadow-elevated);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  color: var(--text);
-}
-
-.table th {
-  background: var(--surface-2);
-  padding: 11px 14px;
-  text-align: left;
-  font-weight: 600;
-  color: var(--text-sub);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
-  vertical-align: middle;
-}
-
-.table tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover {
-  background: var(--surface-hover);
-  cursor: pointer;
-}
-
-.colorDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 6px;
-}
-
-.badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.badge.확정 {
-  background: var(--success-bg);
-  color: var(--success);
-}
-.badge.예약 {
-  background: var(--warning-bg);
-  color: var(--warning);
-}
-.badge.문의 {
-  background: var(--info-bg);
-  color: var(--info);
-}
-.badge.취소 {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
-
-.deleteBtn {
-  height: 28px;
-  padding: 0 12px;
-  background: var(--danger-bg);
-  color: var(--danger);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
-  transition: filter 0.15s;
-  white-space: nowrap;
-}
-
-.deleteBtn:hover {
-  filter: brightness(0.92);
-}
-
-.surveyBtn {
-  height: 28px;
-  padding: 0 12px;
-  background: var(--info-bg);
-  color: var(--info);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid color-mix(in srgb, var(--info) 30%, transparent);
-  transition: filter 0.15s;
-  white-space: nowrap;
-}
-
-.surveyBtn:hover {
-  filter: brightness(0.92);
-}
-
-.confirmOverlay {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-
-.confirmBox {
-  background: var(--surface);
-  border-radius: 10px;
-  padding: 20px 24px 16px;
-  min-width: 240px;
-  box-shadow: var(--shadow-elevated);
-  border: 1px solid var(--border);
+  /* 본문 영역(padding 24px)을 덮어 배경을 칠하고 padding 32px 40px 을 맞춘다 */
+  margin: -24px;
+  padding: 32px 40px;
+  min-height: calc(100vh - var(--header-height));
+  background: var(--d-bg);
+  color: var(--d-text);
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.confirmMsg {
-  font-size: 13px;
-  color: var(--text);
-  line-height: 1.5;
-  text-align: center;
-  white-space: pre-line;
+:global([data-theme='dark']) .reservationPage {
+  --d-bg: #100c19;
+  --d-surface: #19142a;
+  --d-surface2: #1e1833;
+  --d-line: #2c2542;
+  --d-line2: #241e38;
+  --d-text: #ede9f7;
+  --d-muted: #a59fbd;
+  --d-accent: #ff6aa2;
+  --d-on-accent: #1a1226;
+  --d-accent-soft: rgba(255, 106, 162, 0.14);
+  --d-accent-line: rgba(255, 106, 162, 0.38);
+  --d-green-fg: #6fe0b6;
+  --d-green-soft: rgba(79, 209, 161, 0.15);
+  --d-blue-fg: #9db8ff;
+  --d-blue-soft: rgba(134, 169, 255, 0.16);
+  --d-warn-fg: #f4c460;
+  --d-warn-soft: rgba(244, 196, 96, 0.15);
+  --d-red-fg: #ff8aa3;
+  --d-red-soft: rgba(255, 106, 140, 0.15);
+  --d-shadow: none;
 }
 
-.confirmBtns {
+/* ── 헤더 ── */
+.pageTitle { font-size: 26px; font-weight: 700; color: var(--d-text); }
+.pageDesc { margin-top: 4px; font-size: 14px; color: var(--d-muted); }
+
+/* ── 필터 카드 ── */
+.filterCard {
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: 16px;
+  box-shadow: var(--d-shadow);
+  padding: 16px 20px;
   display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.confirmCancelBtn {
+.filterRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filterRowRight { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.filterLabel { font-size: 13px; font-weight: 600; color: var(--d-muted); width: 32px; }
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.chip {
   height: 30px;
   padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 12px;
-  color: var(--text-sub);
-  background: var(--surface);
-  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--d-line);
+  background: var(--d-surface);
+  color: var(--d-text);
+  font-size: 13px;
+  font-weight: 500;
   transition: background 0.15s;
 }
+.chip:hover { background: var(--d-surface2); }
+.chipActive {
+  background: var(--d-accent-soft);
+  border-color: var(--d-accent);
+  color: var(--d-accent);
+  font-weight: 700;
+}
+.chipActive:hover { background: var(--d-accent-soft); }
 
-.confirmCancelBtn:hover {
-  background: var(--surface-hover);
+/* 정렬 세그먼트 */
+.sortBtns {
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 10px;
+  border: 1px solid var(--d-line);
+  background: var(--d-surface2);
+}
+.sortBtn {
+  height: 28px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--d-muted);
+}
+.sortBtn:hover { color: var(--d-text); }
+.sortBtnActive {
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+  font-weight: 700;
 }
 
-.confirmOkBtn {
-  height: 30px;
+.addBtn {
+  height: 38px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 10px;
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+.addBtn:hover { filter: brightness(0.95); }
+
+/* 검색 */
+.searchRow { display: flex; gap: 10px; }
+.searchField {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 0 14px;
-  background: var(--accent);
-  color: var(--text-inverse);
-  border-radius: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--d-line);
+  background: var(--d-surface);
+  color: var(--d-muted);
+}
+.searchField:focus-within { border-color: var(--d-accent); }
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--d-text);
+  font: inherit;
+  font-size: 14px;
+}
+.searchInput::placeholder { color: var(--d-muted); }
+
+/* 라이트: 어두운 버튼 / 다크: 밝은 버튼 */
+.searchBtn {
+  height: 42px;
+  padding: 0 22px;
+  border-radius: 10px;
+  background: var(--d-text);
+  color: var(--d-surface);
+  font-size: 14px;
+  font-weight: 700;
+}
+.searchBtn:hover { filter: brightness(1.15); }
+
+.addBtn:focus-visible,
+.searchBtn:focus-visible,
+.chip:focus-visible,
+.sortBtn:focus-visible,
+.surveyBtn:focus-visible,
+.deleteBtn:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 2px; }
+
+/* ── 건수 ── */
+.toolbar { display: flex; align-items: center; justify-content: space-between; }
+.countLabel { font-size: 13px; color: var(--d-muted); }
+.countLabel strong { color: var(--d-text); font-weight: 700; }
+.toolbar :global(span) { color: var(--d-muted); }
+
+/* ── 표 ── */
+.tableWrap {
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: 16px;
+  box-shadow: var(--d-shadow);
+  overflow-x: auto;
+}
+
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+.table th {
+  padding: 12px 14px;
+  text-align: left;
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: background 0.15s;
+  color: var(--d-muted);
+  background: var(--d-surface2);
+  border-bottom: 1px solid var(--d-line);
+  white-space: nowrap;
 }
 
-.confirmOkBtn:hover {
-  background: var(--accent-hover);
+.table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--d-line2);
+  color: var(--d-text);
+  white-space: nowrap;
 }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr { cursor: pointer; transition: background 0.12s; }
+.table tbody tr:hover { background: var(--d-surface2); }
+.table tbody tr:focus-visible { outline: 2px solid var(--d-accent); outline-offset: -2px; }
+
+.emptyCell { text-align: center; color: var(--d-muted) !important; padding: 48px 0 !important; cursor: default; }
+
+.code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--d-muted) !important; }
+.num { font-variant-numeric: tabular-nums; }
+.purpose { max-width: 160px; overflow: hidden; text-overflow: ellipsis; color: var(--d-muted) !important; }
+
+.orgCell { display: flex; align-items: center; gap: 8px; max-width: 200px; }
+.orgName { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.colorDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* 상태 알약 */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.badge.확정 { background: var(--d-green-soft); color: var(--d-green-fg); }
+.badge.예약 { background: var(--d-warn-soft); color: var(--d-warn-fg); }
+.badge.문의 { background: var(--d-blue-soft); color: var(--d-blue-fg); }
+.badge.취소 { background: var(--d-red-soft); color: var(--d-red-fg); }
+
+/* 관리 버튼 */
+.actions { display: flex; gap: 6px; }
+.surveyBtn,
+.deleteBtn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--d-line);
+  background: var(--d-surface);
+  font-size: 12px;
+  font-weight: 600;
+}
+.surveyBtn { color: var(--d-text); }
+.surveyBtn:hover { background: var(--d-surface2); }
+.deleteBtn { color: var(--d-red-fg); }
+.deleteBtn:hover { background: var(--d-red-soft); }
+
+/* ── 페이지네이션 ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--d-muted);
+}
+.pagination button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--d-line);
+  background: var(--d-surface);
+  color: var(--d-text);
+}
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination button:not(:disabled):hover { background: var(--d-surface2); }
+.pagination button:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 2px; }
+
+/* ── 삭제 확인 ── */
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.confirmBox {
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: 14px;
+  padding: 22px 24px 16px;
+  min-width: 280px;
+  box-shadow: 0 16px 48px rgba(30, 23, 48, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.confirmMsg { font-size: 13px; color: var(--d-text); line-height: 1.6; text-align: center; white-space: pre-line; }
+.confirmBtns { display: flex; gap: 8px; justify-content: flex-end; }
+.confirmCancelBtn {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--d-line);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--d-muted);
+  background: var(--d-surface);
+}
+.confirmCancelBtn:hover { background: var(--d-surface2); }
+.confirmOkBtn {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--d-accent);
+  color: var(--d-on-accent);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.confirmOkBtn:hover { filter: brightness(0.95); }

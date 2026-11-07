@@ -1,0 +1,34 @@
+.wrap { display: flex; flex-direction: column; gap: 10px; }
+
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.tabs { display: flex; gap: 6px; }
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d-muted);
+  border: 1px solid var(--d-line);
+  border-radius: 6px;
+}
+.tab:hover { background: var(--d-surface); }
+.tab:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 1px; }
+
+.tabActive {
+  color: var(--d-accent);
+  background: var(--d-accent-soft);
+  border-color: var(--d-accent-line);
+}
+
+.tabCount { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.legend { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--d-muted); }
+.dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* 칸 너비가 모달 폭에 맞춰 줄어들어도 호수가 잘리지 않도록 글자를 조금 줄인다 */
+.grid { width: 100%; max-width: 660px; margin: 0 auto; }
+.grid > div > span:first-child { font-size: 10px; }

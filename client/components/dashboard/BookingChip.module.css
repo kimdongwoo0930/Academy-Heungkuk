@@ -1,0 +1,71 @@
+/* --c: "r,g,b" / --fg-light, --fg-dark: 글자색 (BookingChip.tsx 에서 주입) */
+.chip {
+  height: 76px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  background: rgba(var(--c), 0.14);
+  border: 1px solid rgba(var(--c), 0.42);
+  color: var(--fg-light);
+}
+
+/* 관리자: 눌러서 예약 상세를 연다 */
+.clickable {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.clickable:hover { box-shadow: 0 0 0 2px rgba(var(--c), 0.35); }
+.clickable:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 2px; }
+
+:global([data-theme='dark']) .chip {
+  background: rgba(var(--c), 0.28);
+  border-color: rgba(var(--c), 0.5);
+  color: var(--fg-dark);
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.org {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.place {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pill {
+  margin-top: auto;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--d-surface);
+  border: 1px solid rgba(var(--c), 0.45);
+}

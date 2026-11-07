@@ -1,0 +1,50 @@
+/* 일정 현황 페이지(.schedulerPage) 안에서 쓰므로 --d- 토큰을 상속한다 */
+.box {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 2px;
+  border-radius: 8px;
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+}
+
+.arrow {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--d-muted);
+}
+.arrow:hover { background: var(--d-surface2); color: var(--d-text); }
+.arrow:focus-visible,
+.label:focus-visible { outline: 2px solid var(--d-accent); outline-offset: 1px; }
+
+.label {
+  min-width: 108px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--d-text);
+  text-align: center;
+}
+.label:hover { background: var(--d-surface2); }
+
+.monthInput {
+  min-width: 108px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--d-accent);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--d-text);
+  background: var(--d-surface);
+  outline: none;
+  text-align: center;
+}

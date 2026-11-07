@@ -25,13 +25,13 @@ interface Props {
   orgLegend?: { color: string; organization: string }[];
 }
 
-const TYPE_COLOR: Record<RoomType, string> = {
+export const TYPE_COLOR: Record<RoomType, string> = {
   "1인실": "#EC008C",
   "2인실": "#0087D4",
   "4인실": "#F5A623",
 };
 
-const TYPE_PASTEL: Record<RoomType, string> = {
+export const TYPE_PASTEL: Record<RoomType, string> = {
   "1인실": "#fce4f3",
   "2인실": "#daeeff",
   "4인실": "#fef3dc",

@@ -1,0 +1,175 @@
+/* 설문 결과 페이지(.page) 안에서 쓰므로 --d- / --s{점수} 토큰을 상속한다 */
+.scoreCell[data-score='5'], .card[data-score='5'] { --sc: var(--s5); }
+.scoreCell[data-score='4'], .card[data-score='4'] { --sc: var(--s4); }
+.scoreCell[data-score='3'], .card[data-score='3'] { --sc: var(--s3); }
+.scoreCell[data-score='2'], .card[data-score='2'] { --sc: var(--s2); }
+.scoreCell[data-score='1'], .card[data-score='1'] { --sc: var(--s1); }
+
+.wrap {
+  background: var(--d-surface);
+  border: 1px solid var(--d-line);
+  border-radius: 14px;
+  overflow-x: auto;
+}
+.table { min-width: 1080px; }
+
+/* 단체 · 이용일 · 항목 5 · 평균 · 재방문 의향 · 화살표 */
+.head,
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) 100px repeat(5, 60px) 64px 200px 36px;
+  align-items: center;
+  column-gap: 0;
+  padding: 0 12px 0 20px;
+}
+
+.head {
+  height: 40px;
+  background: var(--d-surface2);
+  border-bottom: 1px solid var(--d-line);
+  font-size: 12px;
+  color: var(--d-muted);
+}
+.center { text-align: center; }
+
+.item { border-bottom: 1px solid var(--d-line2); }
+.item:last-child { border-bottom: 0; }
+
+.row {
+  width: 100%;
+  min-height: 60px;
+  text-align: left;
+  color: var(--d-text);
+}
+.row:hover { background: var(--d-surface2); }
+.row:focus-visible { outline: 2px solid var(--d-accent); outline-offset: -2px; }
+
+.org { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.orgBar { width: 4px; height: 30px; border-radius: 2px; flex-shrink: 0; }
+.orgText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.orgName { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.orgNameText {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.commentIcon { flex-shrink: 0; color: var(--d-muted); }
+.orgMeta {
+  font-size: 12px;
+  color: var(--d-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date { font-size: 13px; color: var(--d-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.scoreCol { display: flex; justify-content: center; }
+.scoreCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--sc) 12%, transparent);
+  color: color-mix(in srgb, var(--sc) 70%, #000);
+}
+:global([data-theme='dark']) .scoreCell {
+  background: color-mix(in srgb, var(--sc) 24%, transparent);
+  color: color-mix(in srgb, var(--sc) 65%, #fff);
+}
+/* 이용안함: 점선 테두리 + – */
+.scoreCell.skipped {
+  background: transparent;
+  border: 1px dashed var(--d-line);
+  color: var(--d-muted);
+}
+:global([data-theme='dark']) .scoreCell.skipped { background: transparent; color: var(--d-muted); }
+
+.avg {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.low { color: var(--d-warn-fg); }
+
+.revisit { display: flex; align-items: center; gap: 8px; min-width: 0; padding-right: 8px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dotOk { background: var(--d-ok-fg); }
+.dotWarn { background: var(--d-warn-fg); }
+.revisitText {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ok { color: var(--d-ok-fg); }
+.warn { color: var(--d-warn-fg); }
+
+.chevronCol { display: flex; justify-content: center; color: var(--d-muted); }
+.chevron { transition: transform 0.15s; }
+.chevronOpen { transform: rotate(180deg); }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* ── 펼친 상세 ── */
+.detail { padding: 0 20px 18px 54px; }
+
+.metaLine { margin: 0 0 12px; font-size: 12px; color: var(--d-muted); }
+
+.cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.card {
+  padding: 12px 14px;
+  background: var(--d-surface2);
+  border: 1px solid var(--d-line);
+  border-radius: 10px;
+  min-width: 0;
+}
+.cardLabel { font-size: 12px; color: var(--d-muted); }
+.cardValue { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 14px; font-weight: 700; }
+.square { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; background: var(--sc); }
+.squareSkipped { background: var(--d-muted); }
+.cardComment {
+  margin: 8px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--sc);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--d-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.revisitBox {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--d-line);
+  border-radius: 10px;
+}
+.revisitHead { display: flex; align-items: center; gap: 10px; }
+.revisitLabel { font-size: 12px; color: var(--d-muted); }
+.badge { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.badgeOk { background: var(--d-ok-soft); color: var(--d-ok-fg); }
+.badgeWarn { background: var(--d-warn-soft); color: var(--d-warn-fg); }
+.revisitComment {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
